@@ -2,13 +2,19 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
 
-using IdentityServer4;
+using System.Reflection;
 using Dwh.IS4Host.Data;
 using Dwh.IS4Host.Models;
+using IdentityServer4;
+using IdentityServer4.EntityFramework.DbContexts;
+using IdentityServer4.EntityFramework.Mappers;
+using IdentityServer4.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,6 +25,8 @@ namespace Dwh.IS4Host
     {
         public IWebHostEnvironment Environment { get; }
         public IConfiguration Configuration { get; }
+        private static string _clientUri;
+        private static string[] _allowedOrigins;
 
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
         {
@@ -36,12 +44,25 @@ namespace Dwh.IS4Host
         {
             services.AddControllersWithViews();
 
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseMySQL(Configuration.GetConnectionString("DefaultConnection")));
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            _clientUri = Configuration.GetSection("ClientUri").Value;
 
-            services.AddIdentity<ApplicationUser, IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddDefaultTokenProviders();
+            // store assembly for migrations
+            var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
+
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(connectionString));
+
+            services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                // password
+                options.Password.RequiredLength = 7;
+                options.Password.RequireDigit = true;
+                options.Password.RequireUppercase = true;
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
             var builder = services.AddIdentityServer(options =>
             {
@@ -53,25 +74,34 @@ namespace Dwh.IS4Host
                 // see https://identityserver4.readthedocs.io/en/latest/topics/resources.html
                 options.EmitStaticAudienceClaim = true;
             })
-                .AddInMemoryIdentityResources(Config.IdentityResources)
-                .AddInMemoryApiScopes(Config.ApiScopes)
-                .AddInMemoryClients(Config.Clients)
-                .AddAspNetIdentity<ApplicationUser>();
+            .AddConfigurationStore(configDb =>
+            {
+                configDb.ConfigureDbContext = db => db.UseNpgsql(connectionString,
+                    sql => sql.MigrationsAssembly(migrationsAssembly));
+            })
+            .AddOperationalStore(operationDb =>
+            {
+                operationDb.ConfigureDbContext = db => db.UseNpgsql(connectionString,
+                    sql => sql.MigrationsAssembly(migrationsAssembly));
+            })
+            .AddAspNetIdentity<ApplicationUser>();
 
-            // not recommended for production - you need to store your key material somewhere secure
-            builder.AddDeveloperSigningCredential();
+            if (Environment.IsDevelopment())
+            {
+                // not recommended for production - you need to store your key material somewhere secure
+                builder.AddDeveloperSigningCredential();
+            }
+            else
+            {
+                builder.AddCertificateFromFile(Configuration);
+            }
 
-            services.AddAuthentication()
-                .AddGoogle(options =>
-                {
-                    options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
-                    
-                    // register your IdentityServer with Google at https://console.developers.google.com
-                    // enable the Google+ API
-                    // set the redirect URI to https://localhost:5001/signin-google
-                    options.ClientId = "copy client ID from Google here";
-                    options.ClientSecret = "copy client secret from Google here";
-                });
+            services.AddSwaggerGen();
+            services.AddScoped<IProfileService, IdentityProfileService>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+            services.ConfigureNonBreakingSameSiteCookies();
+            services.AddAuthentication();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -81,16 +111,91 @@ namespace Dwh.IS4Host
                 app.UseDeveloperExceptionPage();
                 app.UseDatabaseErrorPage();
             }
+            else
+            {
+                app.UseHsts();
+                app.UseHttpsRedirection();
+            }
+
+            _allowedOrigins = Configuration.GetSection("AllowedOrigins").Get<string[]>();
+            app.UseCors(builder => builder
+                .WithOrigins(_allowedOrigins)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials());
 
             app.UseStaticFiles();
 
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Dwh.IS4 Host V1");
+            });
+
             app.UseRouting();
             app.UseIdentityServer();
+            app.UseCookiePolicy(new CookiePolicyOptions
+            {
+                MinimumSameSitePolicy = SameSiteMode.Lax
+            });
+            app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapDefaultControllerRoute();
             });
+        }
+
+        private void InitializeDatabase(IApplicationBuilder app)
+        {
+            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
+            {
+                var applicationDbContext = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                applicationDbContext.Database.Migrate();
+
+                var persistedGrantDbContext = serviceScope.ServiceProvider
+                    .GetRequiredService<PersistedGrantDbContext>();
+                persistedGrantDbContext.Database.Migrate();
+
+                var configDbContext = serviceScope.ServiceProvider
+                    .GetRequiredService<ConfigurationDbContext>();
+                configDbContext.Database.Migrate();
+
+
+                if (!EnumerableExtensions.Any(configDbContext.Clients))
+                {
+                    foreach (var client in Config.Clients)
+                    {
+                        client.ClientUri = _clientUri;
+                        client.RedirectUris.Add(_clientUri);
+                        client.PostLogoutRedirectUris.Add(_clientUri);
+                        client.AllowedCorsOrigins.Add(_clientUri);
+                        configDbContext.Clients.Add(client.ToEntity());
+                    }
+
+                    configDbContext.SaveChanges();
+                }
+
+                if (!EnumerableExtensions.Any(configDbContext.IdentityResources))
+                {
+                    foreach (var res in Config.IdentityResources)
+                    {
+                        configDbContext.IdentityResources.Add(res.ToEntity());
+                    }
+
+                    configDbContext.SaveChanges();
+                }
+
+                if (!EnumerableExtensions.Any(configDbContext.ApiScopes))
+                {
+                    foreach (var api in Config.ApiScopes)
+                    {
+                        configDbContext.ApiScopes.Add(api.ToEntity());
+                    }
+
+                    configDbContext.SaveChanges();
+                }
+            }
         }
     }
 }

@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Dwh.IS4Host.Models;
 
 namespace IdentityServerHost.Quickstart.UI
 {
