@@ -30,7 +30,7 @@ namespace Dwh.IS4Host
                 // m2m client credentials flow client
                 new Client
                 {
-                    ClientId = "spa",
+                    ClientId = "dwh.spa",
                     ClientName = "DWH Portal Frontend",
                     ClientUri = String.Empty,
                     RequireClientSecret = false,
