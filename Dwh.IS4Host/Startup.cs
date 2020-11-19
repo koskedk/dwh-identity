@@ -26,6 +26,7 @@ namespace Dwh.IS4Host
         public IWebHostEnvironment Environment { get; }
         public IConfiguration Configuration { get; }
         private static string _clientUri;
+        private static string _redirectUris;
         private static string[] _allowedOrigins;
 
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
@@ -46,6 +47,7 @@ namespace Dwh.IS4Host
 
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
             _clientUri = Configuration.GetSection("ClientUri").Value;
+            _redirectUris = Configuration.GetSection("RedirectUris").Value;
 
             // store assembly for migrations
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
@@ -106,6 +108,9 @@ namespace Dwh.IS4Host
 
         public void Configure(IApplicationBuilder app)
         {
+            //Ensure Database is seeded
+            InitializeDatabase(app);
+
             if (Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -167,7 +172,7 @@ namespace Dwh.IS4Host
                     foreach (var client in Config.Clients)
                     {
                         client.ClientUri = _clientUri;
-                        client.RedirectUris.Add(_clientUri);
+                        client.RedirectUris.Add(_redirectUris);
                         client.PostLogoutRedirectUris.Add(_clientUri);
                         client.AllowedCorsOrigins.Add(_clientUri);
                         configDbContext.Clients.Add(client.ToEntity());
