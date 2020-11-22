@@ -27,6 +27,7 @@ namespace Dwh.IS4Host
         public IConfiguration Configuration { get; }
         private static string _clientUri;
         private static string _redirectUris;
+        private static string _postLogoutRedirectUris;
         private static string[] _allowedOrigins;
 
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
@@ -48,12 +49,13 @@ namespace Dwh.IS4Host
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
             _clientUri = Configuration.GetSection("ClientUri").Value;
             _redirectUris = Configuration.GetSection("RedirectUris").Value;
+            _postLogoutRedirectUris = Configuration.GetSection("PostLogoutRedirectUris").Value;
 
             // store assembly for migrations
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(connectionString));
+                options.UseSqlServer(connectionString));
 
             services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
@@ -78,12 +80,12 @@ namespace Dwh.IS4Host
             })
             .AddConfigurationStore(configDb =>
             {
-                configDb.ConfigureDbContext = db => db.UseNpgsql(connectionString,
+                configDb.ConfigureDbContext = db => db.UseSqlServer(connectionString,
                     sql => sql.MigrationsAssembly(migrationsAssembly));
             })
             .AddOperationalStore(operationDb =>
             {
-                operationDb.ConfigureDbContext = db => db.UseNpgsql(connectionString,
+                operationDb.ConfigureDbContext = db => db.UseSqlServer(connectionString,
                     sql => sql.MigrationsAssembly(migrationsAssembly));
             })
             .AddAspNetIdentity<ApplicationUser>();
@@ -173,7 +175,7 @@ namespace Dwh.IS4Host
                     {
                         client.ClientUri = _clientUri;
                         client.RedirectUris.Add(_redirectUris);
-                        client.PostLogoutRedirectUris.Add(_clientUri);
+                        client.PostLogoutRedirectUris.Add(_postLogoutRedirectUris);
                         client.AllowedCorsOrigins.Add(_clientUri);
                         configDbContext.Clients.Add(client.ToEntity());
                     }

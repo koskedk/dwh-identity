@@ -340,5 +340,11 @@ namespace IdentityServerHost.Quickstart.UI
 
             return vm;
         }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
     }
 }

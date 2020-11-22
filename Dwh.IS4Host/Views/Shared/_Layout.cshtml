@@ -4,25 +4,25 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <meta name="description" content="National Data Warehouse">
 
-    <title>IdentityServer4</title>
-    
-    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
-    <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" />
-    
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" />
+    <title>National Data Warehouse</title>
+
+    <link href="~/css/style.css" rel="stylesheet" />
+    <link href="~/css/site.css" rel="stylesheet" />
 </head>
-<body>
-    <partial name="_Nav" />
-   
-    <div class="container body-container">
-        @RenderBody()
+<body class="c-app flex-row align-items-center">
+<div class="c-wrapper c-fixed-components">
+    <partial name="_Nav"/>
+    <div class="container">
+        <div class="row justify-content-center">
+            @RenderBody()
+        </div>
     </div>
+</div>
 
-    <script src="~/lib/jquery/dist/jquery.slim.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
-    @RenderSection("scripts", required: false)
+<script src="~/vendors/coreui/coreui/js/coreui.bundle.min.js"></script>
+<script src="~/vendors/coreui/icons/js/svgxuse.min.js"></script>
+@RenderSection("scripts", required: false)
 </body>
 </html>
