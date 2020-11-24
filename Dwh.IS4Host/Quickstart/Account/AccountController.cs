@@ -15,9 +15,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Dwh.IS4Host.Data;
 using Dwh.IS4Host.Models;
+using Dwh.IS4Host.ViewModels;
+using IdentityServer4.EntityFramework.DbContexts;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace IdentityServerHost.Quickstart.UI
 {
@@ -31,6 +38,8 @@ namespace IdentityServerHost.Quickstart.UI
         private readonly IClientStore _clientStore;
         private readonly IAuthenticationSchemeProvider _schemeProvider;
         private readonly IEventService _events;
+        private readonly ApplicationDbContext _applicationDbContext;
+        private readonly ConfigurationDbContext _configurationDbContext;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
@@ -38,7 +47,9 @@ namespace IdentityServerHost.Quickstart.UI
             IIdentityServerInteractionService interaction,
             IClientStore clientStore,
             IAuthenticationSchemeProvider schemeProvider,
-            IEventService events)
+            IEventService events,
+            ApplicationDbContext applicationDbContext,
+            ConfigurationDbContext configurationDbContext)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -46,6 +57,8 @@ namespace IdentityServerHost.Quickstart.UI
             _clientStore = clientStore;
             _schemeProvider = schemeProvider;
             _events = events;
+            _applicationDbContext = applicationDbContext;
+            _configurationDbContext = configurationDbContext;
         }
 
         /// <summary>
@@ -342,7 +355,126 @@ namespace IdentityServerHost.Quickstart.UI
         }
 
         [HttpGet]
+        public IActionResult RegisterUser()
+        {
+            List<Organization> organizations = _applicationDbContext.Organizations.ToList();
+            List<SelectListItem> org = new List<SelectListItem>();
+            foreach (var organization in organizations)
+            {
+                org.Add(new SelectListItem()
+                {
+                    Text = organization.Name, Value = organization.Id.ToString()
+                });
+            }
+            ViewData["organizations"] = org;
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RegisterUser(RegisterUserModel registerUserModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                List<Organization> organizations = _applicationDbContext.Organizations.ToList();
+                List<SelectListItem> org = new List<SelectListItem>();
+                foreach (var organization in organizations)
+                {
+                    org.Add(new SelectListItem()
+                    {
+                        Text = organization.Name,
+                        Value = organization.Id.ToString()
+                    });
+                }
+                ViewData["organizations"] = org;
+                return View(registerUserModel);
+            }
+
+            var user = new ApplicationUser()
+            {
+                Email = registerUserModel.Email,
+                UserName = registerUserModel.Email,
+                FullName = registerUserModel.FullName,
+                Title = registerUserModel.Title,
+                OrganizationId = registerUserModel.OrganizationId,
+                Designation = registerUserModel.Designation,
+                ReasonForAccessing = registerUserModel.ReasonForAccessing,
+                PhoneNumber = registerUserModel.PhoneNumber
+            };
+
+            var result = await _userManager.CreateAsync(user, registerUserModel.Password);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError("", error.Description);
+                }
+                List<Organization> organizations = _applicationDbContext.Organizations.ToList();
+                List<SelectListItem> org = new List<SelectListItem>();
+                foreach (var organization in organizations)
+                {
+                    org.Add(new SelectListItem()
+                    {
+                        Text = organization.Name,
+                        Value = organization.Id.ToString()
+                    });
+                }
+                ViewData["organizations"] = org;
+                return View();
+            }
+
+            await _userManager.AddClaimsAsync(user, new Claim[]
+            {
+                new Claim(JwtClaimTypes.Name, user.FullName),
+                new Claim(JwtClaimTypes.Email, user.Email),
+                new Claim("OrganizationId", user.OrganizationId.ToString())
+            });
+
+            return RedirectToAction(nameof(RegisterUserConfirmation));
+        }
+
+        public IActionResult RegisterUserConfirmation()
+        {
+            var postlogoutUri = _configurationDbContext.Clients.Where(x => x.ClientId == "dwh.spa")
+                .Include(y => y.PostLogoutRedirectUris).ToList();
+            if (postlogoutUri.Count() > 0)
+            {
+                ViewData["ClientName"] = postlogoutUri[0].ClientName;
+                if (postlogoutUri[0].PostLogoutRedirectUris.Count() > 0)
+                {
+                    ViewData["PostLogoutRedirectUri"] = postlogoutUri[0].PostLogoutRedirectUris[0].PostLogoutRedirectUri;
+                }
+            }
+            return View();
+        }
+
+        [HttpGet]
         public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordModel forgotPasswordModel)
+        {
+            if (!ModelState.IsValid)
+                return View(forgotPasswordModel);
+
+            var user = await _userManager.FindByEmailAsync(forgotPasswordModel.Email);
+            if (user == null)
+                return RedirectToAction(nameof(ResetPasswordEmailNotFound));
+
+            return RedirectToAction(nameof(ForgotPasswordConfirmation));
+        }
+
+        public IActionResult ForgotPasswordConfirmation()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult ResetPasswordEmailNotFound()
         {
             return View();
         }

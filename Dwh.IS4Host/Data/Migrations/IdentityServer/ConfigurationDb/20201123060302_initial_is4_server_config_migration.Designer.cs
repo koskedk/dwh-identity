@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dwh.IS4Host.Data.Migrations.IdentityServer.ConfigurationDb
 {
     [DbContext(typeof(ConfigurationDbContext))]
-    [Migration("20201122203330_initial_is4_server_config_migration")]
+    [Migration("20201123060302_initial_is4_server_config_migration")]
     partial class initial_is4_server_config_migration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

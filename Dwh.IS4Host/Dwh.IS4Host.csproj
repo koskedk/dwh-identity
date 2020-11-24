@@ -39,6 +39,5 @@
   <ItemGroup>
     <Folder Include="Controllers\" />
     <Folder Include="Data\Migrations\AspNetIdentity\" />
-    <Folder Include="Data\Migrations\IdentityServer\" />
   </ItemGroup>
 </Project>

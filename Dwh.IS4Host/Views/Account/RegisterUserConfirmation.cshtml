@@ -1,0 +1,22 @@
+﻿@{
+    var clientName = (string)ViewData["ClientName"];
+    var postLogoutRedirectUri = (string)ViewData["PostLogoutRedirectUri"];
+}
+
+<div class="col-md-8">
+    <div class="card-group">
+        <div class="card mx-4">
+            <div class="card-body p-4">
+                <p class="text-muted">Your account has been created successfully. Click on the link below to login</p>
+
+                <p>
+                    <div>
+                        Click <a class="PostLogoutRedirectUri" href="@postLogoutRedirectUri">here</a> to return to the
+                        <span>@clientName</span> application.
+                    </div>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+

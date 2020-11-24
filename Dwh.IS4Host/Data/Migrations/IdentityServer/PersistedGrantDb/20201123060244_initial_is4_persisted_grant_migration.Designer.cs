@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dwh.IS4Host.Data.Migrations.IdentityServer.PersistedGrantDb
 {
     [DbContext(typeof(PersistedGrantDbContext))]
-    [Migration("20201122203353_initial_is4_persisted_grant_migration")]
+    [Migration("20201123060244_initial_is4_persisted_grant_migration")]
     partial class initial_is4_persisted_grant_migration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

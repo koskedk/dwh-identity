@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20201122201938_InitialMigration")]
+    [Migration("20201123083222_InitialMigration")]
     partial class InitialMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,7 +24,6 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
             modelBuilder.Entity("Dwh.IS4Host.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnName("UserId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("AccessFailedCount")
@@ -50,8 +49,8 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                     b.Property<string>("FullName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ImpersonatorId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid>("ImpersonatorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsDisabled")
                         .HasColumnType("bit");
@@ -73,8 +72,8 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                         .HasColumnType("nvarchar(256)")
                         .HasMaxLength(256);
 
-                    b.Property<string>("OrganizationId")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
@@ -117,7 +116,7 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                         .HasName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("Users");
+                    b.ToTable("AspNetUsers");
                 });
 
             modelBuilder.Entity("Dwh.IS4Host.Models.GisChart", b =>
@@ -148,11 +147,7 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
 
             modelBuilder.Entity("Dwh.IS4Host.Models.Impersonator", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ApplicationUserId")
+                    b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("IsDefault")
@@ -172,9 +167,24 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ApplicationUserId");
-
                     b.ToTable("Impersonators");
+                });
+
+            modelBuilder.Entity("Dwh.IS4Host.Models.Organization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Organizations");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -306,13 +316,6 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens");
-                });
-
-            modelBuilder.Entity("Dwh.IS4Host.Models.Impersonator", b =>
-                {
-                    b.HasOne("Dwh.IS4Host.Models.ApplicationUser", null)
-                        .WithMany("Actions")
-                        .HasForeignKey("ApplicationUserId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
