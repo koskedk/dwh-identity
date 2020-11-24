@@ -1,0 +1,134 @@
+﻿@using Dwh.IS4Host.Models
+@model Dwh.IS4Host.ViewModels.RegisterUserModel
+@{
+    var organizations = (IEnumerable<SelectListItem>) ViewData["organizations"];
+}
+
+@{
+    ViewData["Title"] = "Register User";
+}
+
+<div class="col-md-6">
+    <div class="card-group">
+        <div class="card mx-4">
+            <div class="card-body p-4">
+                <h1>Register</h1>
+                <p class="text-muted">Create your account</p>
+
+                <form asp-action="RegisterUser">
+                    <div asp-validation-summary="All" class="text-danger"></div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <select id="Title" asp-for="Title" name="Title" class="form-control">
+                            <option>Select Title</option>
+                            <option value="0">Mr</option>
+                            <option value="1">Mrs</option>
+                            <option value="2">Ms</option>
+                            <option value="3">Dr</option>
+                            <option value="4">Prof</option>
+                            <option value="5">Eng</option>
+                        </select>
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <input class="form-control" type="text" placeholder="FullName" asp-for="FullName">
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        @Html.DropDownListFor(model => model.OrganizationId, organizations, "-- Select Organization --", new { @class = "form-control" })
+                        <span asp-validation-for="OrganizationId" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <input class="form-control" type="text" placeholder="Designation" asp-for="Designation">
+                        <span asp-validation-for="Designation" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <textarea class="form-control" placeholder="Reason For Accessing" asp-for="ReasonForAccessing"></textarea>
+                        <span asp-validation-for="ReasonForAccessing" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <input class="form-control" type="email" placeholder="Username" asp-for="Email">
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <input class="form-control" type="tel" placeholder="PhoneNumber" asp-for="PhoneNumber">
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <input class="form-control" type="password" placeholder="Password" asp-for="Password">
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <button class="btn btn-primary px-4" type="submit" name="button" value="Submit">Submit</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

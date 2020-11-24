@@ -13,6 +13,7 @@ namespace Dwh.IS4Host.Data
 
         public DbSet<GisChart> GisCharts { get; set; }
         public DbSet<Impersonator> Impersonators { get; set; }
+        public DbSet<Organization> Organizations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -20,10 +21,6 @@ namespace Dwh.IS4Host.Data
             // Customize the ASP.NET Identity model and override the defaults if needed.
             // For example, you can rename the ASP.NET Identity table names and more.
             // Add your customizations after calling base.OnModelCreating(builder);
-
-            builder.Entity<ApplicationUser>(x => x
-                .ToTable("Users")
-            );
         }
     }
 }

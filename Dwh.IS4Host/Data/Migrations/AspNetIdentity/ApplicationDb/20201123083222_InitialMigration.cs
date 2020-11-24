@@ -22,6 +22,42 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                 });
 
             migrationBuilder.CreateTable(
+                name: "AspNetUsers",
+                columns: table => new
+                {
+                    Id = table.Column<string>(nullable: false),
+                    UserName = table.Column<string>(maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(maxLength: 256, nullable: true),
+                    Email = table.Column<string>(maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(nullable: false),
+                    PasswordHash = table.Column<string>(nullable: true),
+                    SecurityStamp = table.Column<string>(nullable: true),
+                    ConcurrencyStamp = table.Column<string>(nullable: true),
+                    PhoneNumber = table.Column<string>(nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(nullable: true),
+                    LockoutEnabled = table.Column<bool>(nullable: false),
+                    AccessFailedCount = table.Column<int>(nullable: false),
+                    FullName = table.Column<string>(nullable: true),
+                    UserType = table.Column<int>(nullable: false),
+                    IsTableau = table.Column<bool>(nullable: false),
+                    IsDisabled = table.Column<bool>(nullable: false),
+                    UserConfirmed = table.Column<int>(nullable: false),
+                    ReasonForAccessing = table.Column<string>(nullable: true),
+                    Designation = table.Column<string>(nullable: true),
+                    Title = table.Column<int>(nullable: false),
+                    Discriminator = table.Column<string>(nullable: true),
+                    OrganizationId = table.Column<Guid>(nullable: false),
+                    ImpersonatorId = table.Column<Guid>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "GisCharts",
                 columns: table => new
                 {
@@ -35,6 +71,35 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_GisCharts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Impersonators",
+                columns: table => new
+                {
+                    Id = table.Column<string>(nullable: false),
+                    UserName = table.Column<string>(nullable: true),
+                    UserId = table.Column<string>(nullable: true),
+                    Password = table.Column<string>(nullable: true),
+                    IsDefault = table.Column<bool>(nullable: false),
+                    IsDisabled = table.Column<bool>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Impersonators", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Organizations",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(nullable: false),
+                    Name = table.Column<string>(nullable: true),
+                    Code = table.Column<string>(nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Organizations", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -72,10 +137,10 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                 {
                     table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AspNetUserClaims_Users_UserId",
+                        name: "FK_AspNetUserClaims_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId",
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -92,10 +157,10 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                 {
                     table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
                     table.ForeignKey(
-                        name: "FK_AspNetUserLogins_Users_UserId",
+                        name: "FK_AspNetUserLogins_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId",
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -116,10 +181,10 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AspNetUserRoles_Users_UserId",
+                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId",
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -136,34 +201,11 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                 {
                     table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
                     table.ForeignKey(
-                        name: "FK_AspNetUserTokens_Users_UserId",
+                        name: "FK_AspNetUserTokens_AspNetUsers_UserId",
                         column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId",
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Impersonators",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(nullable: false),
-                    UserName = table.Column<string>(nullable: true),
-                    UserId = table.Column<string>(nullable: true),
-                    Password = table.Column<string>(nullable: true),
-                    IsDefault = table.Column<bool>(nullable: false),
-                    IsDisabled = table.Column<bool>(nullable: false),
-                    ApplicationUserId = table.Column<string>(nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Impersonators", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Impersonators_Users_ApplicationUserId",
-                        column: x => x.ApplicationUserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -194,9 +236,16 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Impersonators_ApplicationUserId",
-                table: "Impersonators",
-                column: "ApplicationUserId");
+                name: "EmailIndex",
+                table: "AspNetUsers",
+                column: "NormalizedEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "UserNameIndex",
+                table: "AspNetUsers",
+                column: "NormalizedUserName",
+                unique: true,
+                filter: "[NormalizedUserName] IS NOT NULL");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -223,10 +272,13 @@ namespace Dwh.IS4Host.Data.Migrations.AspNetIdentity.ApplicationDb
                 name: "Impersonators");
 
             migrationBuilder.DropTable(
+                name: "Organizations");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "AspNetUsers");
         }
     }
 }
