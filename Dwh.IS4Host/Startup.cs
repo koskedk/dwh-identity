@@ -5,6 +5,7 @@
 using System.Reflection;
 using Dwh.IS4Host.Data;
 using Dwh.IS4Host.Models;
+using EmailService;
 using IdentityServer4;
 using IdentityServer4.EntityFramework.DbContexts;
 using IdentityServer4.EntityFramework.Mappers;
@@ -103,6 +104,12 @@ namespace Dwh.IS4Host
             services.AddSwaggerGen();
             services.AddScoped<IProfileService, IdentityProfileService>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+            var emailConfig = Configuration
+                .GetSection("EmailConfiguration")
+                .Get<EmailConfiguration>();
+            services.AddSingleton(emailConfig);
+            services.AddScoped<IEmailSender, EmailSender>();
 
             services.ConfigureNonBreakingSameSiteCookies();
             services.AddAuthentication();

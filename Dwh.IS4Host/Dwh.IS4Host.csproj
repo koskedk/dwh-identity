@@ -40,4 +40,8 @@
     <Folder Include="Controllers\" />
     <Folder Include="Data\Migrations\AspNetIdentity\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EmailService\EmailService.csproj" />
+  </ItemGroup>
 </Project>
