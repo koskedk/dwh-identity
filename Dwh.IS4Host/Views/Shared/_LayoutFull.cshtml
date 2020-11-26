@@ -13,13 +13,20 @@
     <link href="~/css/jquery.dataTables.min.css" rel="stylesheet" />
     <link href="~/css/sweetalert/sweetalert.css" rel="stylesheet" />
 </head>
-<body class="c-app flex-row align-items-center">
+<body class="c-app">
 <div class="c-wrapper">
     <partial name="_Nav"/>
-    <div class="container-xl">
-        <div class="row justify-content-center">
-            @RenderBody()
+    <div class="c-body">
+        <div class="c-main">
+            <div class="container-fluid">
+                <div class="fade-in">
+                    <div class="row">
+                        @RenderBody()
+                    </div>
+                </div>
+            </div>
         </div>
+        
     </div>
 </div>
 

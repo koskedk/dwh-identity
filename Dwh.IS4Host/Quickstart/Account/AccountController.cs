@@ -123,7 +123,7 @@ namespace IdentityServerHost.Quickstart.UI
             if (ModelState.IsValid)
             {
                 var usr = await _userManager.FindByEmailAsync(model.Username);
-                if (!await _userManager.IsEmailConfirmedAsync(usr))
+                if (usr != null && !await _userManager.IsEmailConfirmedAsync(usr))
                 {
                     string callbackUrl = await SendEmailConfirmationTokenAsync(usr);
                     ModelState.AddModelError(string.Empty, AccountOptions.AccountNotConfirmedErrorMessage);
@@ -1469,7 +1469,7 @@ width: 100%;
         private async Task<string> SendEmailConfirmationTokenAsync(ApplicationUser user)
         {
             string code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Scheme);
+            var callbackUrl = Url.Action("ConfirmEmail", "Account", new { token = code, email = user.Email }, protocol: Request.Scheme);
             var organization = _applicationDbContext.Organizations.Find(user.OrganizationId);
             var loginUrl = Url.Action("Login", "Account", "", protocol: Request.Scheme);
 

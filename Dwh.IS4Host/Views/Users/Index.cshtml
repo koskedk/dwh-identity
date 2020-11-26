@@ -1,1 +1,369 @@
-﻿
+﻿@using System.Security.Claims
+@using Dwh.IS4Host.Data
+@using Dwh.IS4Host.Models
+@using IdentityModel
+@using Microsoft.AspNetCore.Identity
+@{
+    var identity = (ClaimsIdentity)User.Identity;
+    var claim = identity.Claims.Where(x => x.Type == JwtClaimTypes.Email).ToList();
+    if (claim.Count() > 0)
+    {
+        var email = claim[0].Value;
+        var user = (ApplicationUser)ViewData["User"];
+
+        if (null != user)
+        {
+            var currentUser = user;
+            ViewBag.ShowAdmin = currentUser.UserType == (int)UserType.Admin ? "" : "hidden";
+            ViewBag.ShowAdminVisible = currentUser.UserType == (int)UserType.Admin ? "true" : "false";
+            ViewBag.ShowAdminSteward = currentUser.UserType == (int)UserType.Admin || currentUser.UserType == (int)UserType.Steward ? "" : "hidden";
+            ViewBag.ShowSteward = currentUser.UserType == (int)UserType.Steward ? "" : "hidden";
+        }
+    }
+}
+
+@{
+    Layout = "~/Views/Shared/_LayoutFull.cshtml";
+}
+
+<div class="col-md-12">
+    <div class="card-group">
+        <div class="card mx-12">
+            <div class="card-body p-12">
+                <h1>Stewards</h1>
+
+                <p>
+                    <table id="myDatatable" class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Organisation</th>
+                                <th>UserName</th>
+                                <th>Phone Number</th>
+                                <th>Email</th>
+                                <th>Email Verified</th>
+                                <th>Allow Access</th>
+                                <th>Level</th>
+                                <th>Edit</th>
+                                <th>Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-group">
+        <div class="card mx-12">
+            <div class="card-body p-12">
+                <h1>Users</h1>
+
+                <p>
+                    <table id="myDatatable2" class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Organisation</th>
+                                <th>UserName</th>
+                                <th>Type</th>
+                                <th>Phone Number</th>
+                                <th>Email</th>
+                                <th>Email Verified</th>
+                                <th>Steward</th>
+                                <th>Allow Access</th>
+                                <th>Edit</th>
+                                <th>Delete</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+@section scripts{
+    <script>
+        function deleteOrg(id) {
+            swal({
+                    title: "Are you sure?",
+                    text: "This User will be deleted!",
+                    type: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#DD6B55",
+                    confirmButtonText: "Yes, delete it!",
+                    closeOnConfirm: false
+                },
+                function() {
+
+                    $.ajax(
+                            {
+                                type: "post",
+                                url: '@Url.Content("~/Users/DeleteUser/")' + id,
+                                contentType: "application/json; charset=utf-8",
+                                dataType: 'json'
+                            }
+                        )
+                        .done(function(data) {
+                            if (data.Success == 1) {
+                                swal("Deleted!", "User has been deleted.", "success");
+                                window.location.href = '@Url.Content("~/Users/Index")';
+                            } else {
+                                swal("Oops", "Operation could not be completed! " + data.ActionMessage + "", "error");
+                            }
+                        })
+                        .fail(function(data) {
+                            swal("Oops", "Operation could not be real completed! " + data.ActionMessage, "error");
+                        });
+                });
+        }
+
+        function confirmUser(id, confirmed) {
+
+            var actions = {};
+            actions.success = {
+                url: '@Url.Content("~/Users/ConfirmUser/")' + id,
+                msg: 'This User will have access to all your dashboards!'
+            }
+            actions.error = {
+                url: '@Url.Content("~/Users/DenyUser/")' + id,
+                msg: 'This User will not have access to all your dashboards!'
+            }
+
+            swal({
+                                title: "Are you sure?",
+                    text: confirmed ? actions.success.msg : actions.error.msg,
+                    type: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#DD6B55",
+                    confirmButtonText: "Yes, confirm!",
+                    closeOnConfirm: false
+                },
+                function() {
+
+
+                    $.ajax(
+                            {
+                                    type: "post",
+                                url: confirmed ? actions.success.url : actions.error.url,
+                                contentType: "application/json; charset=utf-8",
+                                dataType: 'json'
+                            }
+                        )
+                        .done(function(data) {
+                                    if (data.Success == 1) {
+                                        swal("Saved!", "User has been updated.", "success");
+                                        window.location.href = '@Url.Content("~/Users/Index")';
+                                    } else {
+                                        swal("Oops", "Operation could not be completed! " + data.ActionMessage + "", "error");
+                                    }
+                                })
+                        .fail(function(data) {
+                                    swal("Oops", "Operation could not be real completed! " + data.ActionMessage, "error");
+                                });
+                            });
+                        }
+
+                        function makeSteward(id) {
+                            swal({
+                                title: "Are you sure?",
+                    text: "This User will be elevated to Steward!",
+                    type: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#DD6B55",
+                    confirmButtonText: "Yes, confirm!",
+                    closeOnConfirm: false
+                                },
+                function() {
+
+                    $.ajax(
+                            {
+                                    type: "post",
+                                url: '@Url.Content("~/Users/MakeUserSteward/")' + id,
+                                contentType: "application/json; charset=utf-8",
+                                dataType: 'json'
+                            }
+                        )
+                        .done(function(data) {
+                                    if (data.Success == 1) {
+                                        swal("Updated!", "User has been updated.", "success");
+                                        window.location.href = '@Url.Content("~/Users/Index")';
+                                    } else {
+                                        swal("Oops", "Operation could not be completed! " + data.ActionMessage + "", "error");
+                                    }
+                                })
+                        .fail(function(data) {
+                                    swal("Oops", "Operation could not be real completed! " + data.ActionMessage, "error");
+                                });
+                            });
+                        }
+
+                        function makeUser(id) {
+                            swal({
+                                title: "Are you sure?",
+                    text: "This User will be demoted to User!",
+                    type: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#DD6B55",
+                    confirmButtonText: "Yes, confirm!",
+                    closeOnConfirm: false
+                                },
+                function() {
+
+                    $.ajax(
+                            {
+                                    type: "post",
+                                url: '@Url.Content("~/Users/MakeUser/")' + id,
+                                contentType: "application/json; charset=utf-8",
+                                dataType: 'json'
+                            }
+                        )
+                        .done(function(data) {
+                                    if (data.Success == 1) {
+                                        swal("Updated!", "User has been updated.", "success");
+                                        window.location.href = '@Url.Content("~/Users/Index")';
+                                    } else {
+                                        swal("Oops", "Operation could not be completed! " + data.ActionMessage + "", "error");
+                                    }
+                                })
+                        .fail(function(data) {
+                                    swal("Oops", "Operation could not be real completed! " + data.ActionMessage, "error");
+                                });
+                            });
+                        }
+        $(document).ready(function () {
+            var oTable = $('#myDatatable').DataTable({
+                "ajax": {
+                    "url": '@Url.Content("~/Users/GetStewards")',
+                    "type": "get",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "FullName", "autoWidth": true },
+                    { "data": "Organisation", "autoWidth": true },
+                    { "data": "UserName", "autoWidth": true },
+                    { "data": "PhoneNumber", "autoWidth": true },
+                    { "data": "Email", "autoWidth": true },
+                    { "data": "EmailConfirmed", "autoWidth": true },
+                    { "data": "UserConfirmed", "autoWidth": true,"visible": false },
+                    {
+                        "data": "Id",
+                        "width": "50px",
+                        "visible": @ViewBag.ShowAdminVisible,
+                        "render": function(data, type, row, meta) {
+                            var str = "makeUser('" + data + "')";
+                            return '<button type="button" class="btn btn-sm btn-warning @ViewBag.ShowAdmin" onclick="' +
+                                str +
+                                '">Make User</button>';
+                        }
+                    },
+                    {
+                        "data": "Id",
+                        "width": "50px",
+                        "visible": @ViewBag.ShowAdminVisible,
+                        "render": function(data, type, row, meta) {
+                            return '<button type="button" class="btn btn-sm btn-primary @ViewBag.ShowAdmin" data-toggle="modal" data-target="#modalSteward" data-stwid="' +
+                                row.Id +
+                                '" data-stwfullname="' +
+                                row.FullName +
+                                '" data-stwphone="' +
+                                row.PhoneNumber +
+                                '">Edit</button>';
+                        }
+                    },
+                    {
+                        "data": "Id",
+                        "width": "50px",
+                        "visible": @ViewBag.ShowAdminVisible,
+                        "render": function(data, type, row, meta) {
+                            var str = "deleteOrg('" + data + "')";
+                            return '<button type="button" class="btn btn-sm btn-danger @ViewBag.ShowAdmin" onclick="' +
+                                str +
+                                '">Delete</button>';
+                        }
+                    }
+                ]
+            });
+
+
+            var oTable = $('#myDatatable2').DataTable({
+                "ajax": {
+                    "url": '@Url.Content("~/Users/GetUsers")',
+                    "type": "get",
+                    "datatype": "json"
+                },
+                "columns": [
+                    { "data": "FullName", "autoWidth": true },
+                    { "data": "Organisation", "autoWidth": true },
+                    { "data": "UserName", "autoWidth": true },
+                    { "data": "UserType", "autoWidth": true, "visible": false },
+                    { "data": "PhoneNumber", "autoWidth": true },
+                    { "data": "Email", "autoWidth": true },
+                    { "data": "EmailConfirmed", "autoWidth": true },
+                    {
+                        "data": "Id",
+                        "width": "50px",
+                        "visible": @ViewBag.ShowAdminVisible,
+                        "render": function(data, type, row, meta) {
+                            var str = "makeSteward('" + data + "')";
+                            if (row.UserType != '1' && row.UserType != '4') {
+                                return '<button type="button" class="btn btn-sm btn-warning @ViewBag.ShowAdmin" onclick="' +
+                                    str +
+                                    '">Make Steward</button>';
+                            }
+                            return '';
+                        }
+                    },
+                    {
+                        "data": "UserConfirmed",
+                        "width": "50px",
+                        "render": function(data, type, row, meta) {
+
+                            if (row.UserType != '1') {
+                                var confirm = data === 'Allow';
+                                var btncolor = confirm ? 'warning' : 'danger';
+                                var str = "confirmUser('" + row.Id + "'," + confirm + ")";
+                                return '<button type="button" class="btn btn-sm btn-' +
+                                    btncolor +
+                                    ' @ViewBag.ShowAdminSteward" onclick="' +
+                                    str +
+                                    '">' +
+                                    data +
+                                    '</button>';
+                            }
+                            return '';
+                        }
+                    },
+                    {
+                        "data": "Id",
+                        "width": "50px",
+                        "visible": @ViewBag.ShowAdminVisible,
+                        "render": function(data, type, row, meta) {
+                            return '<button type="button" class="btn btn-sm btn-primary @ViewBag.ShowAdmin" data-toggle="modal" data-target="#modalSteward" data-stwid="' +
+                                row.Id +
+                                '" data-stwfullname="' +
+                                row.FullName +
+                                '" data-stwphone="' +
+                                row.PhoneNumber +
+                                '">Edit</button>';
+                        }
+                    },
+                    {
+                        "data": "Id",
+                        "width": "50px",
+                        "visible": @ViewBag.ShowAdminVisible,
+                        "render": function(data, type, row, meta) {
+                            var str = "deleteOrg('" + data + "')";
+                            return '<button type="button" class="btn btn-sm btn-danger @ViewBag.ShowAdmin" onclick="' +
+                                str +
+                                '">Delete</button>';
+                        }
+                    }
+                ]
+            });
+
+        });
+    </script>
+}
+
+
