@@ -16,5 +16,6 @@ namespace IdentityServerHost.Quickstart.UI
         public static bool AutomaticRedirectAfterSignOut = false;
 
         public static string InvalidCredentialsErrorMessage = "Invalid username or password";
+        public static string AccountNotConfirmedErrorMessage = "You must have a confirmed email to log on." + "The confirmation token has been resent to your email account.";
     }
 }
