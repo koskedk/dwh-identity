@@ -122,6 +122,15 @@ namespace IdentityServerHost.Quickstart.UI
 
             if (ModelState.IsValid)
             {
+                var usr = await _userManager.FindByEmailAsync(model.Username);
+                if (!await _userManager.IsEmailConfirmedAsync(usr))
+                {
+                    string callbackUrl = await SendEmailConfirmationTokenAsync(usr);
+                    ModelState.AddModelError(string.Empty, AccountOptions.AccountNotConfirmedErrorMessage);
+                    var loginVm = await BuildLoginViewModelAsync(model);
+                    return View(loginVm);
+                }
+
                 var result = await _signInManager.PasswordSignInAsync(model.Username, model.Password, model.RememberLogin, lockoutOnFailure: true);
                 if (result.Succeeded)
                 {
@@ -394,6 +403,24 @@ namespace IdentityServerHost.Quickstart.UI
                 return View(registerUserModel);
             }
 
+            var phoneNumberExists = _applicationDbContext.Users.Where(x => x.PhoneNumber == registerUserModel.PhoneNumber).Any();
+            if (phoneNumberExists)
+            {
+                ModelState.AddModelError("PhoneNumber", "Phone number is already used.");
+                List<Organization> organizations = _applicationDbContext.Organizations.ToList();
+                List<SelectListItem> org = new List<SelectListItem>();
+                foreach (var organization in organizations)
+                {
+                    org.Add(new SelectListItem()
+                    {
+                        Text = organization.Name,
+                        Value = organization.Id.ToString()
+                    });
+                }
+                ViewData["organizations"] = org;
+                return View();
+            }
+
             var user = new ApplicationUser()
             {
                 Email = registerUserModel.Email,
@@ -426,6 +453,10 @@ namespace IdentityServerHost.Quickstart.UI
                 ViewData["organizations"] = org;
                 return View();
             }
+            // send user confirmation token
+            string callbackUrl = await SendEmailConfirmationTokenAsync(user);
+            // send steward confirmation token
+            string stewardCallbackUrl = await SendStewardEmailConfirmationRequestAsync(user, "Confirm " + user.FullName + "'s account");
 
             await _userManager.AddClaimsAsync(user, new Claim[]
             {
@@ -435,6 +466,16 @@ namespace IdentityServerHost.Quickstart.UI
             });
 
             return RedirectToAction(nameof(RegisterUserConfirmation));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ConfirmEmail(string token, string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return View("Error");
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            return View(result.Succeeded ? nameof(ConfirmEmail) : "Error");
         }
 
         public IActionResult RegisterUserConfirmation()
@@ -487,26 +528,6 @@ namespace IdentityServerHost.Quickstart.UI
                             <meta content = 'telephone=no' name = 'format-detection' />
                        
                             <title> National Data Warehouse  - Reset Password (no reply) </title>
-                            <!--[if (mso 16)]>
-                           
-                                 <style type = 'text/css' >
-                                    a {{                                          text-decoration: none;                                  }}
-                                  </style>
-                            <![endif]-->
-                            <!--[if gte mso 9
-                              ]><style>
-                                sup {{
-                                        font - size: 100 % !important;
-                                    }}
-                              </style>< !
-                            [endif]-->
-                            <!--[if !mso]><!---->
- 
-                             <link
-                              href = 'https://fonts.googleapis.com/css?family=Lato:400,400i,700,700i'
-                              rel = 'stylesheet'
-                            />
-                            <!--<![endif]-->
                         <style type = 'text/css'>
                            @media only screen and(max-width: 600px) {{
                                     p,
@@ -866,7 +887,7 @@ namespace IdentityServerHost.Quickstart.UI
                                         font-size: 18px;
                                         line-height: 27px;
                                         color: #666666;'>
-                                      Dear {user.Title + ' ' + user.FullName + ' ' },
+                                      Dear { user.FullName },
                                       <br />
                                       Resetting your password is easy.Just
                                       press the button below and follow the
@@ -1408,6 +1429,976 @@ width: 100%;
         public IActionResult ResetPasswordConfirmation()
         {
             return View();
+        }
+
+
+        private async Task<string> SendStewardEmailConfirmationRequestAsync(ApplicationUser user, string v)
+        {
+            //Get stewards
+            var userConfirmer = _applicationDbContext.Users.Where(n => n.UserType == (int)UserType.Steward && n.OrganizationId == user.OrganizationId);
+
+            //Get admin if no steward is configured
+            if (userConfirmer.Any() == false)
+                userConfirmer = _applicationDbContext.Users.Where(n => n.UserType == (int)UserType.Admin);
+            var organization = _applicationDbContext.Organizations.Find(user.OrganizationId);
+            string callbackUrl = Url.Action("Index", "Users", "", Request.Scheme);
+
+            foreach (var steward in userConfirmer)
+            {
+                string emailbody = "<p>Dear&nbsp;<strong>" + steward.FullName + "</strong>,</p>\r\n" +
+                                   "<p><em>Name: " + (UserType)user.Title + ", " + user.FullName + " </em></p>\r\n" +
+                                   "<p><em>Position: " + user.Designation + " </em></p>\r\n" +
+                                   "<p><em>Email: " + user.Email + " </em></p>\r\n" +
+                                   "<p><em>Username: " + user.UserName + " </em></p>\r\n" +
+                                   "<p><em>Request date and time: " + DateTime.Now + " </em></p>\r\n" +
+                                   "<p><em>Reason for access: " + user.ReasonForAccessing + " </em></p>\r\n" +
+                                   "<p>The above mentioned has created an account on the Integrated Data Warehouse portal and is requesting affiliation to <strong>" + organization.Name + "\'s</strong> data and access previleges.</p>\r\n" +
+                                   "<p>To confirm this affiliation and grant access to this request please log into the National Datawarehouse portal <a href=\"" + callbackUrl + "\">here</a> and grant accesss.</p>\r\n" +
+                                   "<p>If the above individual is not affiliated to your organisation you can choose to ignore this message and do nothing.</p>\r\n" +
+                                   "<p>If you have any questions/concerns please contact Administrator on Koske.Kimutai@thepalladiumgroup.com</p>\r\n<p>&nbsp;</p>\r\n" +
+                                   "<p>Regards,&nbsp;</p>\r\n" +
+                                   "<p>National EMR Data Warehouse Access Team</p>" +
+                                   "<p><img src=\"..\\Images\\DWHEmailImg.png\" alt=\"Integrated data warehouse\"></p>";
+
+                var message = new Message(new string[] { steward.Email }, v, emailbody, null);
+                await _emailSender.SendEmailAsync(message);
+            }
+            return callbackUrl;
+        }
+
+        private async Task<string> SendEmailConfirmationTokenAsync(ApplicationUser user)
+        {
+            string code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Scheme);
+            var organization = _applicationDbContext.Organizations.Find(user.OrganizationId);
+            var loginUrl = Url.Action("Login", "Account", "", protocol: Request.Scheme);
+
+            var emailbody = $@"
+                            <head>
+          
+                            <meta charset = 'UTF-8' />
+           
+                            <meta content = 'width=device-width, initial-scale=1' name = 'viewport' />
+              
+                            <meta name = 'x-apple-disable-message-reformatting' />
+               
+                            <meta http-equiv = 'X-UA-Compatible' content = 'IE=edge' />
+                    
+                            <meta content = 'telephone=no' name = 'format-detection' />
+                       
+                            <title> National Data Warehouse  - Confirm Account (no reply) </title>
+                        <style type = 'text/css'>
+                           @media only screen and(max-width: 600px) {{
+                                    p,
+                            ul li,
+                            ol li,
+                            a {{
+                                        font-size: 16px!important;
+                                        line-height: 150 % !important;
+                                    }}
+                                    h1 {{
+                                        font-size: 30px!important;
+                                        text-align: center;
+                                        line-height: 120 % !important;
+                                    }}
+                                    h2 {{
+                                        font-size: 26px!important;
+                                        text-align: center;
+                                        line-height: 120 % !important;
+                                    }}
+                                    h3 {{
+                                        font-size: 20px!important;
+                                        text-align: center;
+                                        line-height: 120 % !important;
+                                    }}
+                                    h1 a {{
+                                        font-size: 30px!important;
+                                    }}
+                                    h2 a {{
+                                        font-size: 26px!important;
+                                    }}
+                                    h3 a {{
+                                        font-size: 20px!important;
+                                    }}
+                                    .es-menu td a {{
+                                        font-size: 16px!important;
+                                    }}
+                                    .es-header-body p,
+                                    .es-header-body ul li,
+                                    .es-header-body ol li,
+                                    .es-header-body a {{
+                                        font - size: 16px!important;
+                                    }}
+                                    .es-footer-body p,
+                                    .es-footer-body ul li,
+                                    .es-footer-body ol li,
+                                    .es-footer-body a {{
+                                        font - size: 16px!important;
+                                    }}
+                                    .es-infoblock p,
+                                    .es-infoblock ul li,
+                                    .es-infoblock ol li,
+                                    .es-infoblock a {{
+                                        font-size: 12px!important;
+                                    }}
+                                    *[class='gmail-fix'] {{
+                                      display: none !important;
+                                    }}
+                                    .es-m-txt-c,
+                                    .es-m-txt-c h1,
+                                    .es-m-txt-c h2,
+                                    .es-m-txt-c h3
+                                    {{
+                                        text-align: center !important;
+                                    }}
+                                    .es-m-txt-r,
+                                    .es-m-txt-r h1,
+                                    .es-m-txt-r h2,
+                                    .es-m-txt-r h3
+                                    {{
+                                        text-align: right !important;
+                                    }}
+                                    .es-m-txt-l,
+                                    .es-m-txt-l h1,
+                                    .es-m-txt-l h2,
+                                    .es-m-txt-l h3
+                                    {{
+                                        text-align: left !important;
+                                    }}
+                                    .es-m-txt-r img,
+                                    .es-m-txt-c img,
+                                    .es-m-txt-l img
+                                    {{
+                                        display: inline !important;
+                                    }}
+                                    .es-button-border {{
+                                      display: block !important;
+                                    }}
+                                    a.es-button {{
+                                        font-size: 20px !important;
+                                        display: block !important;
+                                        border-width: 15px 25px 15px 25px !important;
+                                    }}
+                                    .es-btn-fw {{
+                                      border-width: 10px 0px !important;
+                                      text-align: center !important;
+                                    }}
+                                    .es-adaptive table,
+                                    .es-btn-fw,
+                                    .es-btn-fw-brdr,
+                                    .es-left,
+                                    .es-right {{
+                                      width: 100% !important;
+                                    }}
+                                    .es-content table,
+                                    .es-header table,
+                                    .es-footer table,
+                                    .es-content,
+                                    .es-footer,
+                                    .es-header {{
+                                      width: 100% !important;
+                                      max-width: 600px !important;
+                                    }}
+                                    .es-adapt-td {{
+                                      display: block !important;
+                                      width: 100% !important;
+                                    }}
+                                    .adapt-img {{
+                                      width: 100% !important;
+                                      height: auto !important;
+                                    }}
+                                    .es-m-p0 {{
+                                      padding: 0px !important;
+                                    }}
+                                    .es-m-p0r {{
+                                      padding-right: 0px !important;
+                                    }}
+                                    .es-m-p0l {{
+                                      padding-left: 0px !important;
+                                    }}
+                                    .es-m-p0t {{
+                                      padding-top: 0px !important;
+                                    }}
+                                    .es-m-p0b {{
+                                      padding-bottom: 0 !important;
+                                    }}
+                                    .es-m-p20b {{
+                                      padding-bottom: 20px !important;
+                                    }}
+                                    .es-mobile-hidden,
+                                    .es-hidden {{
+                                      display: none !important;
+                                    }}
+                                    .es-desk-hidden {{
+                                      display: table-row !important;
+                                      width: auto !important;
+                                      overflow: visible !important;
+                                      float: none !important;
+                                      max-height: inherit !important;
+                                      line-height: inherit !important;
+                                    }}
+                                    .es-desk-menu-hidden {{
+                                      display: table-cell !important;
+                                    }}
+                                    table.es-table-not-adapt,
+                                    .esd-block-html table
+                                    {{
+                                        width: auto !important;
+                                    }}
+                                    table.es-social {{
+                                        display: inline-block !important;
+                                    }}
+                                    table.es-social td
+                                    {{
+                                        display: inline-block !important;
+                                    }}
+                                  }}
+                                  #outlook a {{
+                                    padding: 0;
+                                  }}
+                                  .ExternalClass {{
+                                    width: 100%;
+                                  }}
+                                  .ExternalClass,
+                                  .ExternalClass p,
+                                  .ExternalClass span,
+                                  .ExternalClass font,
+                                  .ExternalClass td,
+                                  .ExternalClass div
+                                    {{
+                                        line-height: 100%;
+                                    }}
+                                  .es-button {{
+                                    mso-style-priority: 100 !important;
+                                    text-decoration: none !important;
+                                  }}
+                                  a[x - apple - data - detectors] {{
+                                    color: inherit !important;
+                                    text-decoration: none !important;
+                                    font-size: inherit !important;
+                                    font-family: inherit !important;
+                                    font-weight: inherit !important;
+                                    line-height: inherit !important;
+                                  }}
+                                  .es-desk-hidden {{
+                                    display: none;
+                                    float: left;
+                                    overflow: hidden;
+                                    width: 0;
+                                    max-height: 0;
+                                    line-height: 0;
+                                    mso-hide: all;
+                                  }}
+                        </style>
+                  </head>
+                  <body
+                    style = '
+                      width: 100%;
+                      font-family: lato, 'helvetica neue', helvetica, arial, sans-serif;
+                      -webkit-text-size-adjust: 100%;
+                      -ms-text-size-adjust: 100%;
+                      padding: 0;
+                      margin: 0;
+                    '>
+                    <div class='es-wrapper-color' style='background-color: #f4f4f4;'>
+                      <!--[if gte mso 9]>
+                        <v:background xmlns:v='urn:schemas-microsoft-com:vml' fill='t'>
+                          <v:fill type = 'tile' color='#f4f4f4'></v:fill>
+                        </v:background>
+                      <![endif]-->
+                      <table
+                        class='es-wrapper'
+                        width='100%'
+                        cellspacing='0'
+                        cellpadding='0'
+                        style='
+                          mso-table-lspace: 0pt;
+                          mso-table-rspace: 0pt;
+                          border-collapse: collapse;
+                          border-spacing: 0px;
+                          padding: 0;
+                          margin: 0;
+                          width: 100%;
+                          height: 100%;
+                          background-repeat: repeat;
+                          background-position: center top;
+                        '
+                      >
+                    <tr
+                      class='gmail-fix'
+                      height='0'
+                      style='border-collapse: collapse; height: 10em;'
+                    >
+                  <td style = 'padding: 0; margin: 0;'>
+                    <table
+                      width='600'
+                      cellspacing='0'
+                      cellpadding='0'
+                      border='0'
+                      align='center'
+                      style='
+                        mso-table-lspace: 0pt;
+                        mso-table-rspace: 0pt;
+                        border-collapse: collapse;
+                        border-spacing: 0px;
+                      '
+                    >
+                      <tr style = 'border-collapse: collapse;'>
+                        <td
+                          cellpadding='0'
+                          cellspacing='0'
+                          border='0'
+                          style='
+                            padding: 0;
+                            margin: 0;
+                            line-height: 1px;
+                            min-width: 600px;
+                          '
+                          height='0'
+                        >
+                          &nbsp;
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr style = 'border-collapse: collapse;'>
+                    <td valign='top' style='padding: 0; margin: 0;'>
+                        <table
+                          class='es-content'
+                          cellspacing='0'
+                          cellpadding='0'
+                          align='center'
+                          style='
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                            table-layout: fixed !important;
+                            width: 100%;
+                          '>
+                            <tr style = 'border-collapse: collapse;'>
+                                <td align='center' style='padding: 0; margin: 0;'>
+                  <table
+                    class='es-content-body'
+                    style='
+                      mso-table-lspace: 0pt;
+                      mso-table-rspace: 0pt;
+                      border-collapse: collapse;
+                      border-spacing: 0px;
+                      background-color: #ffffff;
+                    '
+                    width='600'
+                    cellspacing='0'
+                    cellpadding='0'
+                    bgcolor='#ffffff'
+                    align='center'
+                  >
+                    <tr style = 'border-collapse: collapse;'>
+                      <td align='left' style='padding: 0; margin: 0;'>
+                        <table
+                          width = '100%'
+                          cellspacing='0'
+                          cellpadding='0'
+                          style='
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                          '
+                        >
+                          <tr style = 'border-collapse: collapse;'>
+                            <td
+                              width='600'
+                              valign='top'
+                              align='center'
+                              style='padding: 0; margin: 0;'
+                            >
+                              <table
+                                style = '
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  border-collapse: collapse;
+                                  border-spacing: 0px;
+                                  background-color: #ffffff;
+                                '
+                                width='100%'
+                                cellspacing='0'
+                                cellpadding='0'
+                                bgcolor='#ffffff'
+                                role='presentation'>
+
+                                <tr style = 'border-collapse: collapse;'>
+                                  <td
+                                    class='es-m-txt-l'
+                                    bgcolor='#ffffff'
+                                    align='left'
+                                    style='
+                                      margin: 0;
+                                      padding-bottom: 15px;
+                                      padding-top: 20px;
+                                      padding-left: 30px;
+                                      padding-right: 30px;
+                                    '>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'>
+                                      Dear { user.FullName },
+                                      <br />
+                                      Welcome to the NASCOP National EMR Data Warehouse.
+                                    </p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'>Thank you for creating the account below:</p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'><em>Title: { user.Designation }</em></p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'><em>Name: { user.FullName }</em></p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'><em>Email: { user.Email }</em></p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'><em>Position: { user.Designation }</em></p>
+                                    
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'><em>Request date and time: { DateTime.Now }</em></p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'>A separate request has been sent to <strong>{ organization.Name }'s</strong> data steward to verify your account and give you access privileges as defined by <strong>{ organization.Name }.</strong></p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'>Click <a href='{ loginUrl }'>here</a> to log in with limited access.</p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'>If you have any questions or concerns please contact<strong>{ organization.Name }'s</strong> data steward.</p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'>Regards,&nbsp;</p>
+                                    <p style='
+                                        margin: 0;
+                                        mso-line-height-rule: exactly;
+                                        font-size: 18px;
+                                        line-height: 27px;
+                                        color: #666666;'> National EMR Data Warehouse Access Team </p>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr style = 'border-collapse: collapse;'>
+                      <td
+                        align= 'left'
+                        style= '
+                          padding: 0;
+                            margin: 0;
+                          padding-bottom: 20px;
+                          padding-left: 30px;
+                          padding-right: 30px;
+                        '
+                      >
+                        <table
+                          width = '100%'
+                          cellspacing='0'
+                          cellpadding='0'
+                          style='
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                          '
+                        >
+                          <tr style = 'border-collapse: collapse;'>
+                            <td
+                              width='540'
+                              valign='top'
+                              align='center'
+                              style='padding: 0; margin: 0;'
+                            >
+                              <table
+                                width = '100%'
+                                cellspacing='0'
+                                cellpadding='0'
+                                role='presentation'
+                                style='
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  border-collapse: collapse;
+                                  border-spacing: 0px;
+                                '
+                              >
+                                <tr style = 'border-collapse: collapse;'>
+                                  <td
+                                    align='center'
+                                    style='
+                                      margin: 0;
+                                      padding-left: 10px;
+                                      padding-right: 10px;
+                                      padding-top: 40px;
+                                      padding-bottom: 40px;
+                                    '>
+                                    <span
+                                      class='es-button-border'
+                                      style='
+                                        border-style: solid;
+                                        border-color: #7c72dc;
+                                        background: #7c72dc;
+                                        border-width: 1px;
+                                        display: inline-block;
+                                        border-radius: 2px;
+                                        width: auto;'>
+                                     <a
+                                        href = '{callbackUrl}'
+                                        class='es-button'
+                                        target='_blank'
+                                        style='
+                                          text-decoration: none;
+                                          font-size: 20px;
+                                          color: #ffffff;
+                                          border-style: solid;
+                                          border-color: #7c72dc;
+                                          border-width: 15px 25px 15px 25px;
+                                          display: inline-block;
+                                          background: #7c72dc;
+                                          border-radius: 2px;
+                                          font-weight: normal;
+                                          font-style: normal;
+                                          line-height: 24px;
+                                          width: auto;
+                                          text-align: center;'>Confirm Account</a></span>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <table
+              class='es-content'
+              cellspacing='0'
+              cellpadding='0'
+              align='center'
+              style='
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+                border-collapse: collapse;
+                border-spacing: 0px;
+                table-layout: fixed !important;
+                width: 100%;
+              '
+            >
+              <tr style = 'border-collapse: collapse;'>
+                <td align='center' style='padding: 0; margin: 0;'>
+                  <table
+                    class='es-content-body'
+                    width='600'
+                    cellspacing='0'
+                    cellpadding='0'
+                    bgcolor='#ffffff'
+                    align='center'
+                    style='
+                      mso-table-lspace: 0pt;
+                      mso-table-rspace: 0pt;
+                      border-collapse: collapse;
+                      border-spacing: 0px;
+                      background-color: #ffffff;
+                    '
+                  >
+                    <tr style = 'border-collapse: collapse;'>
+                      <td align='left' style='padding: 0; margin: 0;'>
+                        <table
+                          width = '100%'
+                          cellspacing='0'
+                          cellpadding='0'
+                          style='
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                          '
+                        >
+                          <tr style = 'border-collapse: collapse;'>
+                            <td
+                              width='600'
+                              valign='top'
+                              align='center'
+                              style='padding: 0; margin: 0;'
+                            >
+                              <table
+                                style = '
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  border-collapse: separate;
+                                  border-spacing: 0px;
+                                  border-radius: 4px;
+                                  background-color: #111111;
+                                '
+                                width='100%'
+                                cellspacing='0'
+                                cellpadding='0'
+                                bgcolor='#111111'
+                              >
+                                <tr style = 'border-collapse: collapse;' >
+                                  <td
+                                    style='
+                                      padding: 0;
+                                      margin: 0;
+                                      display: none;
+                                    '
+                                    align='center'
+                                  ></td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <table
+              class='es-content'
+              cellspacing='0'
+              cellpadding='0'
+              align='center'
+              style='
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+                border-collapse: collapse;
+                border-spacing: 0px;
+                table-layout: fixed !important;
+width: 100%;
+              '
+            >
+              <tr style = 'border-collapse: collapse;' >
+                <td align='center' style='padding: 0; margin: 0;'>
+                  <table
+                    class='es-content-body'
+                    style='
+                      mso-table-lspace: 0pt;
+                      mso-table-rspace: 0pt;
+                      border-collapse: collapse;
+                      border-spacing: 0px;
+                      background-color: transparent;
+                    '
+                    width='600'
+                    cellspacing='0'
+                    cellpadding='0'
+                    align='center'
+                  >
+                    <tr style = 'border-collapse: collapse;' >
+                      <td align='left' style='padding: 0; margin: 0;'>
+                        <table
+                          width = '100%'
+                          cellspacing='0'
+                          cellpadding='0'
+                          style='
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                          '
+                        >
+                          <tr style = 'border-collapse: collapse;' >
+                            <td
+                              width='600'
+                              valign='top'
+                              align='center'
+                              style='padding: 0; margin: 0;'
+                            >
+                              <table
+                                width = '100%'
+                                cellspacing='0'
+                                cellpadding='0'
+                                role='presentation'
+                                style='
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  border-collapse: collapse;
+                                  border-spacing: 0px;
+                                '
+                              >
+                                <tr style = 'border-collapse: collapse;' >
+                                  <td
+                                    style='
+                                      margin: 0;
+                                      padding-top: 10px;
+                                      padding-bottom: 20px;
+                                      padding-left: 20px;
+                                      padding-right: 20px;
+                                      font-size: 0;
+                                    '
+                                    align='center'
+                                  >
+                                    <table
+                                      width = '100%'
+                                      height='100%'
+                                      cellspacing='0'
+                                      cellpadding='0'
+                                      border='0'
+                                      role='presentation'
+                                      style='
+                                        mso-table-lspace: 0pt;
+                                        mso-table-rspace: 0pt;
+                                        border-collapse: collapse;
+                                        border-spacing: 0px;
+                                      '
+                                    >
+                                      <tr style = 'border-collapse: collapse;' >
+                                        <td
+                                          style='
+                                            padding: 0;
+                                            margin: 0px;
+                                            border-bottom: 1px solid #f4f4f4;
+                                            background: rgba(0, 0, 0, 0) none
+                                              repeat scroll 0% 0%;
+                                            height: 1px;
+                                            width: 100%;
+                                            margin: 0px;
+                                          '
+                                        ></td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <table
+              class='es-content'
+              cellspacing='0'
+              cellpadding='0'
+              align='center'
+              style='
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+                border-collapse: collapse;
+                border-spacing: 0px;
+                table-layout: fixed !important;
+width: 100%;
+              '
+            >
+              <tr style = 'border-collapse: collapse;' >
+                <td align='center' style='padding: 0; margin: 0;'>
+                  <table
+                    class='es-content-body'
+                    style='
+                      mso-table-lspace: 0pt;
+                      mso-table-rspace: 0pt;
+                      border-collapse: collapse;
+                      border-spacing: 0px;
+                      background-color: #c6c2ed;
+                    '
+                    width='600'
+                    cellspacing='0'
+                    cellpadding='0'
+                    bgcolor='#c6c2ed'
+                    align='center'
+                  >
+                    <tr style = 'border-collapse: collapse;' >
+                      <td align='left' style='padding: 0; margin: 0;'>
+                        <table
+                          width = '100%'
+                          cellspacing='0'
+                          cellpadding='0'
+                          style='
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                          '
+                        >
+                          <tr style = 'border-collapse: collapse;' >
+                            <td
+                              width='600'
+                              valign='top'
+                              align='center'
+                              style='padding: 0; margin: 0;'
+                            >
+                              <table
+                                style = '
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  border-collapse: separate;
+                                  border-spacing: 0px;
+                                  border-radius: 4px;
+                                '
+                                width='100%'
+                                cellspacing='0'
+                                cellpadding='0'
+                              >
+                                <tr style = 'border-collapse: collapse;' >
+                                  <td
+                                    style='
+                                      padding: 0;
+                                      margin: 0;
+                                      display: none;
+                                    '
+                                    align='center'
+                                  ></td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <table
+              class='es-content'
+              cellspacing='0'
+              cellpadding='0'
+              align='center'
+              style='
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+                border-collapse: collapse;
+                border-spacing: 0px;
+                table-layout: fixed !important;
+width: 100%;
+              '
+            >
+              <tr style = 'border-collapse: collapse;' >
+                <td align='center' style='padding: 0; margin: 0;'>
+                  <table
+                    class='es-content-body'
+                    style='
+                      mso-table-lspace: 0pt;
+                      mso-table-rspace: 0pt;
+                      border-collapse: collapse;
+                      border-spacing: 0px;
+                      background-color: transparent;
+                    '
+                    width='600'
+                    cellspacing='0'
+                    cellpadding='0'
+                    align='center'
+                  >
+                    <tr style = 'border-collapse: collapse;' >
+                      <td
+                        align='left'
+                        style='
+                          margin: 0;
+                          padding-left: 20px;
+                          padding-right: 20px;
+                          padding-top: 30px;
+                          padding-bottom: 30px;
+                        '
+                      >
+                        <table
+                          width = '100%'
+                          cellspacing='0'
+                          cellpadding='0'
+                          style='
+                            mso-table-lspace: 0pt;
+                            mso-table-rspace: 0pt;
+                            border-collapse: collapse;
+                            border-spacing: 0px;
+                          '
+                        >
+                          <tr style = 'border-collapse: collapse;' >
+                            <td
+                              width='560'
+                              valign='top'
+                              align='center'
+                              style='padding: 0; margin: 0;'
+                            >
+                              <table
+                                width = '100%'
+                                cellspacing='0'
+                                cellpadding='0'
+                                style='
+                                  mso-table-lspace: 0pt;
+                                  mso-table-rspace: 0pt;
+                                  border-collapse: collapse;
+                                  border-spacing: 0px;
+                                '>
+                                <tr style = 'border-collapse: collapse;' >
+                                  <td
+                                    align='center'
+                                    style='
+                                      padding: 0;
+                                      margin: 0;
+                                      display: none;
+                                    '
+                                  ></td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+";
+
+            var message = new Message(new string[] { user.Email }, "Confirm your account", emailbody, null);
+            await _emailSender.SendEmailAsync(message);
+            return callbackUrl;
         }
     }
 }

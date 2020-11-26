@@ -19,4 +19,30 @@ namespace Dwh.IS4Host.Models
         public Guid OrganizationId { get; set; }
         public Guid ImpersonatorId { get; set; }
     }
+
+    public enum UserType
+    {
+        None,
+        Admin,
+        Steward,
+        Normal,
+        Guest
+    }
+
+    public enum Title
+    {
+        Mr = 1,
+        Mrs,
+        Ms,
+        Dr,
+        Prof,
+        Eng
+    }
+
+    public enum UserConfirmation
+    {
+        Pending,
+        Confirmed,
+        Denyed
+    }
 }

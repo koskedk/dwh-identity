@@ -65,6 +65,7 @@ namespace Dwh.IS4Host
                 options.Password.RequireDigit = true;
                 options.Password.RequireUppercase = true;
                 options.User.RequireUniqueEmail = true;
+                options.SignIn.RequireConfirmedEmail = true;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
