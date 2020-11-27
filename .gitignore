@@ -339,3 +339,5 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 /Dwh.IS4Host/appsettings.Development.json
+/Dwh.IS4Host/build.zip
+/Dwh.IS4Host/build
