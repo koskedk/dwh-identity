@@ -99,7 +99,7 @@ namespace Dwh.IS4Host
             }
             else
             {
-                builder.AddCertificateFromFile(Configuration);
+                builder.AddCertificateFromFile(Configuration,Environment);
             }
 
             services.AddSwaggerGen();
