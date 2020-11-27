@@ -43,4 +43,10 @@
   <ItemGroup>
     <ProjectReference Include="..\EmailService\EmailService.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="kenyahmis.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
