@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
 
+using System.Linq;
 using System.Reflection;
 using Dwh.IS4Host.Data;
 using Dwh.IS4Host.Models;
@@ -28,6 +29,7 @@ namespace Dwh.IS4Host
         public IConfiguration Configuration { get; }
         private static string _clientUri;
         private static string _redirectUris;
+        private static string _adhocRedirectUris;
         private static string _postLogoutRedirectUris;
         private static string[] _allowedOrigins;
 
@@ -50,6 +52,7 @@ namespace Dwh.IS4Host
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
             _clientUri = Configuration.GetSection("ClientUri").Value;
             _redirectUris = Configuration.GetSection("RedirectUris").Value;
+            _adhocRedirectUris = Configuration.GetSection("AdhocRedirectUris").Value;
             _postLogoutRedirectUris = Configuration.GetSection("PostLogoutRedirectUris").Value;
 
             // store assembly for migrations
@@ -176,20 +179,28 @@ namespace Dwh.IS4Host
                     .GetRequiredService<ConfigurationDbContext>();
                 configDbContext.Database.Migrate();
 
-
-                if (!EnumerableExtensions.Any(configDbContext.Clients))
+                foreach (var client in Config.Clients)
                 {
-                    foreach (var client in Config.Clients)
+                    if (client.ClientId == "dwh.spa")
                     {
                         client.ClientUri = _clientUri;
                         client.RedirectUris.Add(_redirectUris);
                         client.PostLogoutRedirectUris.Add(_postLogoutRedirectUris);
                         client.AllowedCorsOrigins.Add(_clientUri);
-                        configDbContext.Clients.Add(client.ToEntity());
+                    } 
+                    else if (client.ClientId == "adhoc-client")
+                    {
+                        client.RedirectUris.Add(_adhocRedirectUris);
                     }
 
-                    configDbContext.SaveChanges();
+                    var isClientExists = configDbContext.Clients.Where(x => x.ClientId == client.ClientId).Any();
+                    if (!isClientExists)
+                    {
+                        configDbContext.Clients.Add(client.ToEntity());
+                    }
                 }
+
+                configDbContext.SaveChanges();
 
                 if (!EnumerableExtensions.Any(configDbContext.IdentityResources))
                 {
