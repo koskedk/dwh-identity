@@ -50,6 +50,21 @@ namespace Dwh.IS4Host
                         "apiApp"
                     },
                 },
+                new Client()
+                {
+                    ClientName = "Adhoc MCV Client",
+                    ClientId = "adhoc-client",
+                    AllowedGrantTypes = GrantTypes.Hybrid,
+                    RedirectUris = new List<string>(),
+                    RequirePkce = false,
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                    },
+                    ClientSecrets = { new Secret("a79fd782-bd4b-45ac-b13d-03e99d89b186".Sha512()) }
+                }
             };
     }
 }
