@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
 
+using System;
 using System.Linq;
 using System.Reflection;
+using BotDetect.Web;
 using Dwh.IS4Host.Data;
 using Dwh.IS4Host.Models;
 using EmailService;
@@ -15,6 +17,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
@@ -109,6 +112,14 @@ namespace Dwh.IS4Host
             services.AddScoped<IProfileService, IdentityProfileService>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
+            services.AddMvc();
+            services.AddMemoryCache();
+            services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(20);
+                options.Cookie.IsEssential = true;
+            });
+
             var emailConfig = Configuration
                 .GetSection("EmailConfiguration")
                 .Get<EmailConfiguration>();
@@ -117,6 +128,11 @@ namespace Dwh.IS4Host
 
             services.ConfigureNonBreakingSameSiteCookies();
             services.AddAuthentication();
+
+            services.Configure<KestrelServerOptions>(options =>
+            {
+                options.AllowSynchronousIO = true;
+            });
         }
 
         public void Configure(IApplicationBuilder app)
@@ -141,6 +157,9 @@ namespace Dwh.IS4Host
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials());
+
+            app.UseSession();
+            app.UseCaptcha(Configuration);
 
             app.UseStaticFiles();
 
