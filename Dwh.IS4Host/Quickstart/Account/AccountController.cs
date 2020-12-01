@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using BotDetect.Web.Mvc;
 using Dwh.IS4Host.Data;
 using Dwh.IS4Host.Models;
 using Dwh.IS4Host.ViewModels;
@@ -385,6 +386,7 @@ namespace IdentityServerHost.Quickstart.UI
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [CaptchaValidationActionFilter("CaptchaCode", "DwhCaptcha", "Wrong Captcha!")]
         public async Task<IActionResult> RegisterUser(RegisterUserModel registerUserModel)
         {
             if (!ModelState.IsValid)

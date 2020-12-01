@@ -34,5 +34,7 @@ namespace Dwh.IS4Host.ViewModels
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
+        [Required]
+        public string CaptchaCode { get; set; }
     }
 }
