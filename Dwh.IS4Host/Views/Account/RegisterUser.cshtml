@@ -121,6 +121,19 @@
                         <input class="form-control" type="password" placeholder="Password" asp-for="Password">
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
+                    
+                    <div class="input-group mb-3">
+                        <label asp-for="CaptchaCode">Retype the code from the picture:</label>
+                        <captcha id="DwhCaptcha" user-input-id="CaptchaCode" />
+                        <div class="actions">
+                            <input asp-for="CaptchaCode" />
+                            <span asp-validation-for="CaptchaCode"></span>
+                            @if ((Context.Request.Method == "POST") && ViewData.ModelState.IsValid)
+                            {
+                                <span class="correct">Correct!</span>
+                            }
+                        </div>
+                    </div>
 
                     <div class="row">
                         <div class="col-6">
