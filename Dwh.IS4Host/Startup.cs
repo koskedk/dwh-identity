@@ -133,6 +133,11 @@ namespace Dwh.IS4Host
             {
                 options.AllowSynchronousIO = true;
             });
+
+            services.Configure<IISServerOptions>(options =>
+            {
+                options.AllowSynchronousIO = true;
+            });
         }
 
         public void Configure(IApplicationBuilder app)
