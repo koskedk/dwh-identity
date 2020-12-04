@@ -30,10 +30,10 @@ namespace Dwh.IS4Host
     {
         public IWebHostEnvironment Environment { get; }
         public IConfiguration Configuration { get; }
-        private static string _clientUri;
-        private static string _redirectUris;
-        private static string _adhocRedirectUris;
-        private static string _postLogoutRedirectUris;
+        private static string _clientUri,_ndwhClientUri;
+        private static string _redirectUris,_ndwhRedirectUris;
+        private static string _adhocRedirectUris,_ndwhAdhocRedirectUris;
+        private static string _postLogoutRedirectUris,_ndwhPostLogoutRedirectUris;
         private static string[] _allowedOrigins;
 
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
@@ -53,10 +53,16 @@ namespace Dwh.IS4Host
             services.AddControllersWithViews();
 
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
+
             _clientUri = Configuration.GetSection("ClientUri").Value;
             _redirectUris = Configuration.GetSection("RedirectUris").Value;
             _adhocRedirectUris = Configuration.GetSection("AdhocRedirectUris").Value;
             _postLogoutRedirectUris = Configuration.GetSection("PostLogoutRedirectUris").Value;
+
+            _ndwhClientUri= Configuration.GetSection("NdwhClientUri").Value;
+            _ndwhRedirectUris = Configuration.GetSection("NdwhRedirectUris").Value;
+            _ndwhAdhocRedirectUris = Configuration.GetSection("NdwhAdhocRedirectUris").Value;
+            _ndwhPostLogoutRedirectUris = Configuration.GetSection("NdwhPostLogoutRedirectUris").Value;
 
             // store assembly for migrations
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
@@ -211,13 +217,24 @@ namespace Dwh.IS4Host
                         client.RedirectUris.Add(_redirectUris);
                         client.PostLogoutRedirectUris.Add(_postLogoutRedirectUris);
                         client.AllowedCorsOrigins.Add(_clientUri);
-                    } 
+                    }
                     else if (client.ClientId == "adhoc-client")
                     {
                         client.RedirectUris.Add(_adhocRedirectUris);
                     }
+                    else if (client.ClientId == "nascop.spa")
+                    {
+                        client.ClientUri = _ndwhClientUri;
+                        client.RedirectUris.Add(_ndwhRedirectUris);
+                        client.PostLogoutRedirectUris.Add(_ndwhPostLogoutRedirectUris);
+                        client.AllowedCorsOrigins.Add(_ndwhClientUri);
+                    }
+                    else if (client.ClientId == "nascop.adhoc-client")
+                    {
+                        client.RedirectUris.Add(_ndwhAdhocRedirectUris);
+                    }
 
-                    var isClientExists = configDbContext.Clients.Where(x => x.ClientId == client.ClientId).Any();
+                    var isClientExists = configDbContext.Clients.Any(x => x.ClientId == client.ClientId);
                     if (!isClientExists)
                     {
                         configDbContext.Clients.Add(client.ToEntity());
