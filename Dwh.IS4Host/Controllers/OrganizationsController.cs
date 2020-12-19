@@ -16,7 +16,6 @@ namespace Dwh.IS4Host.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class OrganizationsController : ControllerBase
     {
         private readonly ApplicationDbContext _applicationDbContext;

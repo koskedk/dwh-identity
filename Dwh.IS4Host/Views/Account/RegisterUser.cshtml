@@ -122,6 +122,18 @@
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
                     
+                    <div class="input-group mb-3">
+                        <div class="input-group-append">
+                            <span class="input-group-text">
+                                <svg class="c-icon">
+                                    <use xlink:href="~/vendors/coreui/icons/svg/free.svg#cil-user"></use>
+                                </svg>
+                            </span>
+                        </div>
+                        <input class="form-control" type="password" placeholder="Confirm Password" asp-for="ConfirmPassword">
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+                    
                     <div class="progress"> 
                         <div class="progress-bar" 
                              role="progressbar" 
