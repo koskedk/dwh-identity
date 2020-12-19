@@ -14,19 +14,22 @@
         <a href="~/">
             <img src="~/img/dwh2.png" class="icon-banner" height="40px" />
         </a>
+        
+        <ul class="d-md-down-none mr-auto c-header-nav">
+            <li class="px-3 c-header-nav-item">
+                <a class="c-header-nav-link active" href="https://data.kenyahmis.org:9000/">Home</a>
+            </li>
+            
+            @if (!string.IsNullOrWhiteSpace(name))
+            {
+                <li class="px-3 c-header-nav-item">
+                    <a href="#" class="nav-link active" data-toggle="dropdown">@name <b class="caret"></b></a>
 
-        @if (!string.IsNullOrWhiteSpace(name))
-        {
-            <ul class="navbar-nav mr-auto">
-                <li class="nav-item dropdown">
-                    <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">@name <b class="caret"></b></a>
-                    
                     <div class="dropdown-menu">
                         <a class="dropdown-item" asp-action="Logout" asp-controller="Account">Logout</a>
                     </div>
-              </li>
-            </ul>
-        }
-    
+                </li>
+            }
+        </ul>
     </nav>
 </div>

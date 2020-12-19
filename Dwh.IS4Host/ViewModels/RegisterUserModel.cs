@@ -34,6 +34,10 @@ namespace Dwh.IS4Host.ViewModels
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
+        [DataType(DataType.Password)]
+        [Compare("Password", ErrorMessage = "Confirm password doesn't match")]
+        public string ConfirmPassword { get; set; }
+
         [Required]
         public string CaptchaCode { get; set; }
     }
