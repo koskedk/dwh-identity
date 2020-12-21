@@ -16,6 +16,7 @@ using IdentityServer4.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Logging;
 
 namespace Dwh.IS4Host
 {
@@ -50,6 +52,7 @@ namespace Dwh.IS4Host
 
         public void ConfigureServices(IServiceCollection services)
         {
+            IdentityModelEventSource.ShowPII = true;
             services.AddControllersWithViews();
 
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
@@ -104,6 +107,8 @@ namespace Dwh.IS4Host
             })
             .AddAspNetIdentity<ApplicationUser>();
 
+
+
             if (Environment.IsDevelopment())
             {
                 // not recommended for production - you need to store your key material somewhere secure
@@ -148,6 +153,16 @@ namespace Dwh.IS4Host
 
         public void Configure(IApplicationBuilder app)
         {
+            var fordwardedHeaderOptions = new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            };
+            fordwardedHeaderOptions.KnownNetworks.Clear();
+            fordwardedHeaderOptions.KnownProxies.Clear();
+
+            app.UseForwardedHeaders(fordwardedHeaderOptions);
+
+
             //Ensure Database is seeded
             InitializeDatabase(app);
 
