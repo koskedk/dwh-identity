@@ -118,7 +118,7 @@
                                 </svg>
                             </span>
                         </div>
-                        <input class="form-control" type="password" placeholder="Password" asp-for="Password">
+                        <input class="form-control" type="password" placeholder="Password" asp-for="Password" id="PasswordStrength">
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
                     
@@ -134,15 +134,18 @@
                         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
                     </div>
                     
-                    <div class="progress"> 
-                        <div class="progress-bar" 
-                             role="progressbar" 
-                             aria-valuenow="0" 
-                             aria-valuemin="0" 
-                             aria-valuemax="100" 
-                             style="width:0%"> 
-                        </div> 
+                    <div class="indicator">
+                        <span class="weak"></span>
+                        <span class="medium"></span>
+                        <span class="strong"></span>
                     </div>
+                    
+                    <div class="text">
+                    </div>
+                    
+                    <p>
+                        &nbsp;
+                    </p>
 
                     <div class="input-group mb-3">
                         <label asp-for="CaptchaCode">Retype the code from the picture:</label>
