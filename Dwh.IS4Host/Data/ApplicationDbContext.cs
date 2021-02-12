@@ -14,6 +14,7 @@ namespace Dwh.IS4Host.Data
         public DbSet<GisChart> GisCharts { get; set; }
         public DbSet<Impersonator> Impersonators { get; set; }
         public DbSet<Organization> Organizations { get; set; }
+        public DbSet<OrganizationContacts> OrganizationContactses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
