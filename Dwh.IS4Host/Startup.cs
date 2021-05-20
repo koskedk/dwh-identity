@@ -56,6 +56,7 @@ namespace Dwh.IS4Host
             services.AddControllersWithViews();
 
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            var hisConnectionString = Configuration.GetConnectionString("His_Implementation");
 
             _clientUri = Configuration.GetSection("ClientUri").Value;
             _redirectUris = Configuration.GetSection("RedirectUris").Value;
@@ -72,6 +73,10 @@ namespace Dwh.IS4Host
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
+
+            //add implementation db context
+            services.AddDbContext<HisImplementationDbContext>(options =>
+                options.UseSqlServer(hisConnectionString));
 
             services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {

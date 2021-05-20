@@ -40,5 +40,7 @@ namespace Dwh.IS4Host.ViewModels
 
         [Required]
         public string CaptchaCode { get; set; }
+
+        public bool SubscribeToNewsLetter { get; set; }
     }
 }

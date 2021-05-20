@@ -432,7 +432,8 @@ namespace IdentityServerHost.Quickstart.UI
                 OrganizationId = registerUserModel.OrganizationId,
                 Designation = registerUserModel.Designation,
                 ReasonForAccessing = registerUserModel.ReasonForAccessing,
-                PhoneNumber = registerUserModel.PhoneNumber
+                PhoneNumber = registerUserModel.PhoneNumber,
+                SubscribeToNewsletter = registerUserModel.SubscribeToNewsLetter
             };
 
             var result = await _userManager.CreateAsync(user, registerUserModel.Password);

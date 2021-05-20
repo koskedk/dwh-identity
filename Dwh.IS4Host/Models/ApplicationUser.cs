@@ -18,6 +18,7 @@ namespace Dwh.IS4Host.Models
         public string Discriminator { get; set; }
         public Guid OrganizationId { get; set; }
         public Guid ImpersonatorId { get; set; }
+        public bool SubscribeToNewsletter { get; set; }
     }
 
     public enum UserType

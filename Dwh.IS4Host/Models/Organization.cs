@@ -10,5 +10,8 @@ namespace Dwh.IS4Host.Models
         public Guid Id { get; set; }
         public string Name { get; set; }
         public string Code { get; set; }
+        public string UsgMechanism { get; set; }
+
+        public ICollection<OrganizationContacts> OrganizationContactses { get; set; }
     }
 }

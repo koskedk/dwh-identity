@@ -1,55 +1,54 @@
 ﻿$(document).ready(function () {
-    var percentage = 0;
+    var indicator = document.querySelector(".indicator");
+    var input = document.getElementById("PasswordStrength");
+    var weak = document.querySelector(".weak");
+    var medium = document.querySelector(".medium");
+    var strong = document.querySelector(".strong");
+    var text = document.querySelector(".text");
+    var regExpWeak = /[a-z]/;
+    var regExpMedium = /\d+/;
+    var regExpStrong = /.[!,@,#,$,%,^,&,*,?,_,~,-,(,)]/;
 
-    function check(n, m) {
-        if (n < 6) {
-            percentage = 0;
-            $(".progress-bar").css("background", "#dd4b39");
-        } else if (n < 8) {
-            percentage = 20;
-            $(".progress-bar").css("background", "#9c27b0");
-        } else if (n < 10) {
-            percentage = 40;
-            $(".progress-bar").css("background", "#ff9800");
+
+    function trigger() {
+        if (input.value != "") {
+            indicator.style.display = "block";
+            indicator.style.display = "flex";
+            if (input.value.length <= 3 && (input.value.match(regExpWeak) || input.value.match(regExpMedium) || input.value.match(regExpStrong))) no = 1;
+            if (input.value.length >= 6 && ((input.value.match(regExpWeak) && input.value.match(regExpMedium)) || (input.value.match(regExpMedium) && input.value.match(regExpStrong)) || (input.value.match(regExpWeak) && input.value.match(regExpStrong)))) no = 2;
+            if (input.value.length >= 6 && input.value.match(regExpWeak) && input.value.match(regExpMedium) && input.value.match(regExpStrong)) no = 3;
+            if (no == 1) {
+                weak.classList.add("active");
+                text.style.display = "block";
+                text.textContent = "Your password is too week";
+                text.classList.add("weak");
+            }
+            if (no == 2) {
+                medium.classList.add("active");
+                text.textContent = "Your password is medium";
+                text.classList.add("medium");
+            } else {
+                medium.classList.remove("active");
+                text.classList.remove("medium");
+            }
+            if (no == 3) {
+                weak.classList.add("active");
+                medium.classList.add("active");
+                strong.classList.add("active");
+                text.textContent = "Your password is strong";
+                text.classList.add("strong");
+            } else {
+                strong.classList.remove("active");
+                text.classList.remove("strong");
+            }
         } else {
-            percentage = 60;
-            $(".progress-bar").css("background", "#4caf50");
+            indicator.style.display = "none";
+            text.style.display = "none";
         }
-
-        // Check for the character-set constraints 
-        // and update percentage variable as needed. 
-
-        //Lowercase Words only 
-        if ((m.match(/[a-z]/) != null)) {
-            percentage += 10;
-        }
-
-        //Uppercase Words only 
-        if ((m.match(/[A-Z]/) != null)) {
-            percentage += 10;
-        }
-
-        //Digits only 
-        if ((m.match(/0|1|2|3|4|5|6|7|8|9/) != null)) {
-            percentage += 10;
-        }
-
-        //Special characters 
-        if ((m.match(/\W/) != null) && (m.match(/\D/) != null)) {
-            percentage += 10;
-        }
-
-        console.log(percentage);
-        // Update the width of the progress bar 
-        $(".progress-bar").css("width", percentage + "%");
     }
 
     // Whenever the key is pressed, apply condition checks.  
-    $("#Password").keyup(function () {
-        var m = $(this).val();
-        var n = m.length;
-
-        // Function for checking 
-        check(n, m);
+    $("#PasswordStrength").keyup(function () {
+        trigger();
     });
 });
