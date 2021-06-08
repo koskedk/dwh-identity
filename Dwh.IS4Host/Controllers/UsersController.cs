@@ -5,10 +5,12 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Dwh.IS4Host.Data;
 using Dwh.IS4Host.Models;
+using Dwh.IS4Host.ViewModels;
 using IdentityModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
 using Serilog;
 
@@ -256,6 +258,89 @@ namespace Dwh.IS4Host.Controllers
             }
 
             return Content(json, "application/json");
+        }
+
+        [HttpGet]
+        public IActionResult UpdateUser(string userId)
+        {
+            var user = _applicationDbContext.Users.Find(userId);
+            List<Organization> organizations = _applicationDbContext.Organizations.ToList();
+            List<SelectListItem> org = new List<SelectListItem>();
+            foreach (var organization in organizations)
+            {
+                org.Add(new SelectListItem()
+                {
+                    Text = organization.Name, Value = organization.Id.ToString()
+                });
+            }
+            ViewData["organizations"] = org;
+            UpdateUserModel updateUserModel = new UpdateUserModel()
+            {
+                Designation = user.Designation,
+                Email = user.Email,
+                Id = user.Id,
+                Title = user.Title,
+                FullName = user.FullName,
+                OrganizationId = user.OrganizationId,
+                PhoneNumber = user.PhoneNumber,
+                ReasonForAccessing = user.ReasonForAccessing,
+                SubscribeToNewsLetter = user.SubscribeToNewsletter
+            };
+            return View(updateUserModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateUser(UpdateUserModel updateUserModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                List<Organization> organizations = _applicationDbContext.Organizations.ToList();
+                List<SelectListItem> org = new List<SelectListItem>();
+                foreach (var organization in organizations)
+                {
+                    org.Add(new SelectListItem()
+                    {
+                        Text = organization.Name,
+                        Value = organization.Id.ToString()
+                    });
+                }
+                ViewData["organizations"] = org;
+                return View(updateUserModel);
+            }
+            
+            var phoneNumberExists = _applicationDbContext.Users.Any(x => x.PhoneNumber == updateUserModel.PhoneNumber && x.Id != updateUserModel.Id);
+            if (phoneNumberExists)
+            {
+                ModelState.AddModelError("PhoneNumber", "Phone number is already used.");
+                List<Organization> organizations = _applicationDbContext.Organizations.ToList();
+                List<SelectListItem> org = new List<SelectListItem>();
+                foreach (var organization in organizations)
+                {
+                    org.Add(new SelectListItem()
+                    {
+                        Text = organization.Name,
+                        Value = organization.Id.ToString()
+                    });
+                }
+                ViewData["organizations"] = org;
+                return View();
+            }
+
+            var user = await _userManager.FindByIdAsync(updateUserModel.Id);
+            user.Email = updateUserModel.Email;
+            user.UserName = updateUserModel.Email;
+            user.FullName = updateUserModel.FullName;
+            user.Title = updateUserModel.Title;
+            user.OrganizationId = updateUserModel.OrganizationId;
+            user.Designation = updateUserModel.Designation;
+            user.ReasonForAccessing = updateUserModel.ReasonForAccessing;
+            user.PhoneNumber = updateUserModel.PhoneNumber;
+            user.SubscribeToNewsletter = updateUserModel.SubscribeToNewsLetter;
+
+            await _userManager.UpdateAsync(user);
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }
