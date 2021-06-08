@@ -197,6 +197,10 @@
                                 });
                             });
                         }
+                        
+                        function editUser(id) {
+                            window.location.href = '@Url.Content("~/Users/UpdateUser?userId=")' + id;
+                        }
 
                         function makeUser(id) {
                             swal({
@@ -262,7 +266,8 @@
                         "width": "50px",
                         "visible": @ViewBag.ShowAdminVisible,
                         "render": function(data, type, row, meta) {
-                            return '<button type="button" class="btn btn-sm btn-primary @ViewBag.ShowAdmin" data-toggle="modal" data-target="#modalSteward" data-stwid="' +
+                            var str = "editUser('" + data + "')";
+                            return '<button type="button" class="btn btn-sm btn-primary @ViewBag.ShowAdmin" data-toggle="modal" data-target="#modalSteward" onclick="' + str + '" data-stwid="' +
                                 row.Id +
                                 '" data-stwfullname="' +
                                 row.FullName +
@@ -339,7 +344,8 @@
                         "width": "50px",
                         "visible": @ViewBag.ShowAdminVisible,
                         "render": function(data, type, row, meta) {
-                            return '<button type="button" class="btn btn-sm btn-primary @ViewBag.ShowAdmin" data-toggle="modal" data-target="#modalSteward" data-stwid="' +
+                            var str = "editUser('" + data + "')";
+                            return '<button type="button" class="btn btn-sm btn-primary @ViewBag.ShowAdmin" data-toggle="modal" onclick="' + str + '" data-target="#modalSteward" data-stwid="' +
                                 row.Id +
                                 '" data-stwfullname="' +
                                 row.FullName +
