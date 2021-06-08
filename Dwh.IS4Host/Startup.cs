@@ -16,6 +16,7 @@ using IdentityServer4.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Logging;
 
 namespace Dwh.IS4Host
 {
@@ -50,6 +52,7 @@ namespace Dwh.IS4Host
 
         public void ConfigureServices(IServiceCollection services)
         {
+            IdentityModelEventSource.ShowPII = true;
             services.AddControllersWithViews();
 
             var connectionString = Configuration.GetConnectionString("DefaultConnection");
@@ -60,7 +63,7 @@ namespace Dwh.IS4Host
             _adhocRedirectUris = Configuration.GetSection("AdhocRedirectUris").Value;
             _postLogoutRedirectUris = Configuration.GetSection("PostLogoutRedirectUris").Value;
 
-            _ndwhClientUri= Configuration.GetSection("NdwhClientUri").Value;
+            _ndwhClientUri = Configuration.GetSection("NdwhClientUri").Value;
             _ndwhRedirectUris = Configuration.GetSection("NdwhRedirectUris").Value;
             _ndwhAdhocRedirectUris = Configuration.GetSection("NdwhAdhocRedirectUris").Value;
             _ndwhPostLogoutRedirectUris = Configuration.GetSection("NdwhPostLogoutRedirectUris").Value;
@@ -76,38 +79,40 @@ namespace Dwh.IS4Host
                 options.UseSqlServer(hisConnectionString));
 
             services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-            {
-                // password
-                options.Password.RequiredLength = 7;
-                options.Password.RequireDigit = true;
-                options.Password.RequireUppercase = true;
-                options.User.RequireUniqueEmail = true;
-                options.SignIn.RequireConfirmedEmail = true;
-            })
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+                {
+                    // password
+                    options.Password.RequiredLength = 7;
+                    options.Password.RequireDigit = true;
+                    options.Password.RequireUppercase = true;
+                    options.User.RequireUniqueEmail = true;
+                    options.SignIn.RequireConfirmedEmail = true;
+                })
+                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders();
 
             var builder = services.AddIdentityServer(options =>
-            {
-                options.Events.RaiseErrorEvents = true;
-                options.Events.RaiseInformationEvents = true;
-                options.Events.RaiseFailureEvents = true;
-                options.Events.RaiseSuccessEvents = true;
+                {
+                    options.Events.RaiseErrorEvents = true;
+                    options.Events.RaiseInformationEvents = true;
+                    options.Events.RaiseFailureEvents = true;
+                    options.Events.RaiseSuccessEvents = true;
 
-                // see https://identityserver4.readthedocs.io/en/latest/topics/resources.html
-                options.EmitStaticAudienceClaim = true;
-            })
-            .AddConfigurationStore(configDb =>
-            {
-                configDb.ConfigureDbContext = db => db.UseSqlServer(connectionString,
-                    sql => sql.MigrationsAssembly(migrationsAssembly));
-            })
-            .AddOperationalStore(operationDb =>
-            {
-                operationDb.ConfigureDbContext = db => db.UseSqlServer(connectionString,
-                    sql => sql.MigrationsAssembly(migrationsAssembly));
-            })
-            .AddAspNetIdentity<ApplicationUser>();
+                    // see https://identityserver4.readthedocs.io/en/latest/topics/resources.html
+                    options.EmitStaticAudienceClaim = true;
+                })
+                .AddConfigurationStore(configDb =>
+                {
+                    configDb.ConfigureDbContext = db => db.UseSqlServer(connectionString,
+                        sql => sql.MigrationsAssembly(migrationsAssembly));
+                })
+                .AddOperationalStore(operationDb =>
+                {
+                    operationDb.ConfigureDbContext = db => db.UseSqlServer(connectionString,
+                        sql => sql.MigrationsAssembly(migrationsAssembly));
+                })
+                .AddAspNetIdentity<ApplicationUser>();
+
+
 
             if (Environment.IsDevelopment())
             {
@@ -116,7 +121,7 @@ namespace Dwh.IS4Host
             }
             else
             {
-                builder.AddCertificateFromFile(Configuration,Environment);
+                builder.AddCertificateFromFile(Configuration, Environment);
             }
 
             services.AddSwaggerGen();
@@ -140,19 +145,23 @@ namespace Dwh.IS4Host
             services.ConfigureNonBreakingSameSiteCookies();
             services.AddAuthentication();
 
-            services.Configure<KestrelServerOptions>(options =>
-            {
-                options.AllowSynchronousIO = true;
-            });
+            services.Configure<KestrelServerOptions>(options => { options.AllowSynchronousIO = true; });
 
-            services.Configure<IISServerOptions>(options =>
+            services.Configure<IISServerOptions>(options => { options.AllowSynchronousIO = true; });
+
+            services.Configure<ForwardedHeadersOptions>(options =>
             {
-                options.AllowSynchronousIO = true;
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
             });
         }
 
         public void Configure(IApplicationBuilder app)
         {
+            app.UseForwardedHeaders();
+
+
             //Ensure Database is seeded
             InitializeDatabase(app);
 
