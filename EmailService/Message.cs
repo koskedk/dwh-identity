@@ -9,20 +9,36 @@ namespace EmailService
 {
     public class Message
     {
-        public List<MailboxAddress> To { get; set; }
-        public string Subject { get; set; }
-        public string Content { get; set; }
-
-        public IFormFileCollection Attachments { get; set; }
-
-        public Message(IEnumerable<string> to, string subject, string content, IFormFileCollection attachments)
+        public IFormFileCollection Attachments
         {
-            To = new List<MailboxAddress>();
+            get;
+            set;
+        }
 
-            To.AddRange(to.Select(x => new MailboxAddress(x)));
-            Subject = subject;
-            Content = content;
-            Attachments = attachments;
+        public string Content
+        {
+            get;
+            set;
+        }
+
+        public string Subject
+        {
+            get;
+            set;
+        }
+
+        public string To
+        {
+            get;
+            set;
+        }
+
+        public Message(string to, string subject, string content, IFormFileCollection attachments)
+        {
+            this.To = to;
+            this.Subject = subject;
+            this.Content = content;
+            this.Attachments = attachments;
         }
     }
 }

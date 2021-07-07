@@ -55,7 +55,7 @@ namespace Dwh.IS4Host.Controllers
                         if (pointPerson.Count > 0)
                         {
                             var emailbody = IndicatorEmails.GetDataWarehouseKeyStatistics(pointPerson[0].Names, refreshDate);
-                            var message = new Message(new string[] { pointPerson[0].Email }, "Data Warehouse Key statistics", emailbody, attachments);
+                            var message = new Message(pointPerson[0].Email, "Data Warehouse Key statistics", emailbody, attachments);
                             await _emailSender.SendEmailAsync(message);
 
                             return Ok(new { Message = $"An email was sent to {pointPerson[0].Email} successfully" });

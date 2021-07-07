@@ -5,7 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MailKit.Net.Smtp;
+using Microsoft.AspNetCore.Http;
 using MimeKit;
+using RestSharp;
+using RestSharp.Authenticators;
 using Serilog;
 
 namespace EmailService
@@ -19,103 +22,77 @@ namespace EmailService
             _emailConfig = emailConfig;
         }
 
+        private void Send(Message mailMessage)
+        {
+            try
+            {
+                RestClient restClient = new RestClient();
+                restClient.BaseUrl = new Uri(this._emailConfig.MailGunBaseUrl);
+                restClient.Authenticator = new HttpBasicAuthenticator("api", this._emailConfig.MailGunApiKey);
+                RestRequest restRequest = new RestRequest();
+                restRequest.AddParameter("domain", this._emailConfig.MailGunDomain, ParameterType.UrlSegment);
+                restRequest.Resource = "{domain}/messages";
+                restRequest.AddParameter("from", string.Concat("National Data Warehouse <", this._emailConfig.From, ">"));
+                restRequest.AddParameter("to", mailMessage.To);
+                restRequest.AddParameter("subject", mailMessage.Subject);
+                restRequest.AddParameter("html", mailMessage.Content);
+                if (Enumerable.Any<IFormFile>(mailMessage.Attachments))
+                {
+                    foreach (IFormFile attachment in mailMessage.Attachments)
+                    {
+                        restRequest.AddFile("attachment", Path.Combine("files", attachment.FileName), null);
+                    }
+                }
+                restRequest.Method = Method.POST;
+                restClient.Execute(restRequest);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+                throw ex;
+            }
+        }
+
+
+        private async Task SendAsync(Message mailMessage)
+        {
+            try
+            {
+                RestClient restClient = new RestClient();
+                restClient.BaseUrl = new Uri(this._emailConfig.MailGunBaseUrl);
+                restClient.Authenticator = new HttpBasicAuthenticator("api", this._emailConfig.MailGunApiKey);
+                RestRequest restRequest = new RestRequest();
+                restRequest.AddParameter("domain", this._emailConfig.MailGunDomain, ParameterType.UrlSegment);
+                restRequest.Resource = "{domain}/messages";
+                restRequest.AddParameter("from", string.Concat("National Data Warehouse <", this._emailConfig.From, ">"));
+                restRequest.AddParameter("to", mailMessage.To);
+                restRequest.AddParameter("subject", mailMessage.Subject);
+                restRequest.AddParameter("html", mailMessage.Content);
+                if (mailMessage.Attachments != null && Enumerable.Any<IFormFile>(mailMessage.Attachments))
+                {
+                    foreach (IFormFile attachment in mailMessage.Attachments)
+                    {
+                        restRequest.AddFile("attachment", Path.Combine("files", attachment.FileName), null);
+                    }
+                }
+                restRequest.Method = Method.POST;
+                await restClient.ExecuteAsync(restRequest);
+            }
+            catch (Exception exception)
+            {
+                Log.Error(exception.Message);
+                throw exception;
+            }
+        }
+
         public void SendEmail(Message message)
         {
-            var emailMessage = CreateEmailMessage(message);
-
-            Send(emailMessage);
+            this.Send(message);
         }
 
         public async Task SendEmailAsync(Message message)
         {
-            var mailMessage = CreateEmailMessage(message);
-
-            await SendAsync(mailMessage);
-        }
-
-        private MimeMessage CreateEmailMessage(Message message)
-        {
-            var emailMessage = new MimeMessage();
-            emailMessage.From.Add(new MailboxAddress(_emailConfig.From));
-            emailMessage.To.AddRange(message.To);
-            emailMessage.Subject = message.Subject;
-
-            var bodyBuilder = new BodyBuilder { HtmlBody = string.Format("<h2 style='color:red;'>{0}</h2>", message.Content) };
-
-            if (message.Attachments != null && message.Attachments.Any())
-            {
-                byte[] fileBytes;
-                foreach (var attachment in message.Attachments)
-                {
-                    using (var ms = new MemoryStream())
-                    {
-                        attachment.CopyTo(ms);
-                        fileBytes = ms.ToArray();
-                    }
-
-                    bodyBuilder.Attachments.Add(attachment.FileName, fileBytes, ContentType.Parse(attachment.ContentType));
-                }
-            }
-
-            emailMessage.Body = bodyBuilder.ToMessageBody();
-            return emailMessage;
-        }
-
-
-        private void Send(MimeMessage mailMessage)
-        {
-            using (var client = new SmtpClient())
-            {
-                try
-                {
-                    client.Connect(_emailConfig.SmtpServer, _emailConfig.Port, true);
-                    client.AuthenticationMechanisms.Remove("XOAUTH2");
-                    client.Authenticate(_emailConfig.UserName, _emailConfig.Password);
-
-                    client.Send(mailMessage);
-                }
-                catch
-                {
-                    //log an error message or throw an exception, or both.
-                    throw;
-                }
-                finally
-                {
-                    client.Disconnect(true);
-                    client.Dispose();
-                }
-            }
-        }
-
-
-        private async Task SendAsync(MimeMessage mailMessage)
-        {
-            using (var client = new SmtpClient())
-            {
-                try
-                {
-                    client.ServerCertificateValidationCallback = (s, c, ch, e) => true;
-                    //client.Connect("imap.gmail.com", 993, MailKit.Security.SecureSocketOptions.SslOnConnect);
-                    //client.Authenticate(_emailConfig.UserName, _emailConfig.Password);
-
-                    await client.ConnectAsync(_emailConfig.SmtpServer, _emailConfig.Port, MailKit.Security.SecureSocketOptions.Auto);
-                    client.AuthenticationMechanisms.Remove("XOAUTH2");
-                    await client.AuthenticateAsync(_emailConfig.UserName, _emailConfig.Password);
-                    //client.Disconnect(true);
-                    await client.SendAsync(mailMessage);
-                }
-                catch (Exception e)
-                {
-                    //log an error message or throw an exception, or both.
-                    Log.Error(e.Message);
-                    throw;
-                }
-                finally
-                {
-                    await client.DisconnectAsync(true);
-                    client.Dispose();
-                }
-            }
+            await this.SendAsync(message);
         }
     }
 }

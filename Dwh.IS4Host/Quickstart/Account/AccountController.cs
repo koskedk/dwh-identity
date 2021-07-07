@@ -1376,7 +1376,7 @@ width: 100%;
   </body>
 ";
 
-            var message = new Message(new string[] { user.Email }, "National Data Warehouse - Reset Password (no reply)", emailbody, null);
+            var message = new Message(user.Email, "National Data Warehouse - Reset Password (no reply)", emailbody, null);
             await _emailSender.SendEmailAsync(message);
 
             return RedirectToAction(nameof(ForgotPasswordConfirmation));
@@ -2371,7 +2371,7 @@ width: 100%;
 ";
                 
 
-                var message = new Message(new string[] { steward.Email }, v, emailbody, null);
+                var message = new Message(steward.Email, v, emailbody, null);
                 await _emailSender.SendEmailAsync(message);
             }
             return callbackUrl;
@@ -3307,7 +3307,7 @@ width: 100%;
   </body>
 ";
 
-            var message = new Message(new string[] { user.Email }, "Confirm your account", emailbody, null);
+            var message = new Message(user.Email, "Confirm your account", emailbody, null);
             await _emailSender.SendEmailAsync(message);
             return callbackUrl;
         }
