@@ -103,7 +103,30 @@ namespace Dwh.IS4Host
                         IdentityServerConstants.StandardScopes.Email,
                     },
                     ClientSecrets = { new Secret("a78fd782-bd4b-45ac-b13d-03e99d89b186".Sha512()) }
-                }
+                },
+                new Client
+                {
+                    ClientId = "dwh.his",
+                    ClientName = "DWH HIS",
+                    ClientUri = String.Empty,
+                    RequireClientSecret = false,
+                    RequireConsent = false,
+                    AllowedGrantTypes = GrantTypes.Implicit,
+                    RedirectUris = new List<string>(),
+                    PostLogoutRedirectUris = new List<string>(),
+                    AllowedCorsOrigins = new List<string>(),
+                    AllowAccessTokensViaBrowser = true,
+                    AlwaysIncludeUserClaimsInIdToken = true,
+                    AlwaysSendClientClaims = true,
+                    AccessTokenLifetime = 3600,
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                        "apiApp"
+                    },
+                },
             };
     }
 }

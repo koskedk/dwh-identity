@@ -32,10 +32,10 @@ namespace Dwh.IS4Host
     {
         public IWebHostEnvironment Environment { get; }
         public IConfiguration Configuration { get; }
-        private static string _clientUri,_ndwhClientUri;
-        private static string _redirectUris,_ndwhRedirectUris;
+        private static string _clientUri, _ndwhClientUri, _hisClientUri;
+        private static string _redirectUris,_ndwhRedirectUris,_hisRedirectUris;
         private static string _adhocRedirectUris,_ndwhAdhocRedirectUris;
-        private static string _postLogoutRedirectUris,_ndwhPostLogoutRedirectUris;
+        private static string _postLogoutRedirectUris,_ndwhPostLogoutRedirectUris,_hisPostLogoutRedirectUris;
         private static string[] _allowedOrigins;
 
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
@@ -67,6 +67,10 @@ namespace Dwh.IS4Host
             _ndwhRedirectUris = Configuration.GetSection("NdwhRedirectUris").Value;
             _ndwhAdhocRedirectUris = Configuration.GetSection("NdwhAdhocRedirectUris").Value;
             _ndwhPostLogoutRedirectUris = Configuration.GetSection("NdwhPostLogoutRedirectUris").Value;
+
+            _hisClientUri = Configuration.GetSection("HisClientUri").Value;
+            _hisRedirectUris = Configuration.GetSection("HisRedirectUris").Value;
+            _hisPostLogoutRedirectUris = Configuration.GetSection("HisPostLogoutRedirectUris").Value;
 
             // store assembly for migrations
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
@@ -246,6 +250,13 @@ namespace Dwh.IS4Host
                     else if (client.ClientId == "nascop.adhoc-client")
                     {
                         client.RedirectUris.Add(_ndwhAdhocRedirectUris);
+                    }
+                    else if (client.ClientId == "dwh.his")
+                    {
+                        client.ClientUri = _hisClientUri;
+                        client.RedirectUris.Add(_hisRedirectUris);
+                        client.PostLogoutRedirectUris.Add(_hisPostLogoutRedirectUris);
+                        client.AllowedCorsOrigins.Add(_hisClientUri);
                     }
 
                     var isClientExists = configDbContext.Clients.Any(x => x.ClientId == client.ClientId);
