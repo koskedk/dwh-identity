@@ -32,6 +32,7 @@ namespace Dwh.IS4Host
 
             // Add custom claims in token here based on user properties or any other source
             claims.Add(new Claim("FullName", user.FullName ?? string.Empty));
+            claims.Add(new Claim("OrganizationId", user.OrganizationId.ToString() ?? string.Empty));
 
             context.IssuedClaims = claims;
         }
