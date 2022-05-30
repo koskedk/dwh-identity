@@ -17,6 +17,7 @@ namespace Dwh.IS4Host
                 new IdentityResources.OpenId(),
                 new IdentityResources.Profile(),
                 new IdentityResources.Email(),
+                new IdentityResource("roles", new[] { "role" })
             };
 
         public static IEnumerable<ApiScope> ApiScopes =>
@@ -126,7 +127,7 @@ namespace Dwh.IS4Host
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         IdentityServerConstants.StandardScopes.Email,
-                        "crsserviceapi"
+                        "crsserviceapi","roles"
                     },
                 },
                 new Client()
@@ -141,7 +142,7 @@ namespace Dwh.IS4Host
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         IdentityServerConstants.StandardScopes.Email,
-                        "crsserviceapi"
+                        "crsserviceapi","roles"
                     },
                     ClientSecrets = { new Secret("a80fd782-bd4b-45ac-b13d-03e99d89b186".Sha512()) }
                 },

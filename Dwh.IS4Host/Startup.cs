@@ -7,9 +7,12 @@ using System.Linq;
 using System.Reflection;
 using BotDetect.Web;
 using Dwh.IS4Host.Data;
+using Dwh.IS4Host.Helpers;
 using Dwh.IS4Host.Models;
+using Dwh.IS4Host.Services;
 using EmailService;
 using IdentityServer4;
+using IdentityServer4.AspNetIdentity;
 using IdentityServer4.EntityFramework.DbContexts;
 using IdentityServer4.EntityFramework.Mappers;
 using IdentityServer4.Services;
@@ -132,6 +135,7 @@ namespace Dwh.IS4Host
             services.AddSwaggerGen();
             services.AddScoped<IProfileService, IdentityProfileService>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IProfileService, ProfileService>();
 
             services.AddMvc();
             services.AddMemoryCache();
@@ -160,10 +164,14 @@ namespace Dwh.IS4Host
                 options.KnownNetworks.Clear();
                 options.KnownProxies.Clear();
             });
+            
+           
         }
 
         public void Configure(IApplicationBuilder app)
         {
+
+
             app.UseForwardedHeaders();
 
 
@@ -286,6 +294,9 @@ namespace Dwh.IS4Host
                 }
                 
                 configDbContext.SaveChanges();
+                
+                 RoleHelper.CreateRoles(serviceScope.ServiceProvider,Configuration).Wait();
+                
             }
         }
     }
