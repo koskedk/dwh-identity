@@ -25,6 +25,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Logging;
+using Serilog;
 
 namespace Dwh.IS4Host
 {
@@ -32,10 +33,10 @@ namespace Dwh.IS4Host
     {
         public IWebHostEnvironment Environment { get; }
         public IConfiguration Configuration { get; }
-        private static string _clientUri,_ndwhClientUri;
-        private static string _redirectUris,_ndwhRedirectUris;
+        private static string _clientUri,_ndwhClientUri,_crsClientUri;
+        private static string _redirectUris,_ndwhRedirectUris,_crsRedirectUris;
         private static string _adhocRedirectUris,_ndwhAdhocRedirectUris;
-        private static string _postLogoutRedirectUris,_ndwhPostLogoutRedirectUris;
+        private static string _postLogoutRedirectUris,_ndwhPostLogoutRedirectUris,_crsPostLogoutRedirectUris;
         private static string[] _allowedOrigins;
 
         public Startup(IWebHostEnvironment environment, IConfiguration configuration)
@@ -67,6 +68,10 @@ namespace Dwh.IS4Host
             _ndwhRedirectUris = Configuration.GetSection("NdwhRedirectUris").Value;
             _ndwhAdhocRedirectUris = Configuration.GetSection("NdwhAdhocRedirectUris").Value;
             _ndwhPostLogoutRedirectUris = Configuration.GetSection("NdwhPostLogoutRedirectUris").Value;
+            
+            _crsClientUri = Configuration.GetSection("CrsClientUri").Value;
+            _crsRedirectUris = Configuration.GetSection("CrsRedirectUris").Value;
+            _crsPostLogoutRedirectUris = Configuration.GetSection("CrsPostLogoutRedirectUris").Value;
 
             // store assembly for migrations
             var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
@@ -194,6 +199,7 @@ namespace Dwh.IS4Host
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Dwh.IS4 Host V1");
             });
 
+            app.UseSerilogRequestLogging();
             app.UseRouting();
             app.UseIdentityServer();
             app.UseCookiePolicy(new CookiePolicyOptions
@@ -247,6 +253,13 @@ namespace Dwh.IS4Host
                     {
                         client.RedirectUris.Add(_ndwhAdhocRedirectUris);
                     }
+                    else if (client.ClientId == "dwapi.crs.spa")
+                    {
+                        client.ClientUri = _crsClientUri;
+                        client.RedirectUris.Add(_crsRedirectUris);
+                        client.PostLogoutRedirectUris.Add(_crsPostLogoutRedirectUris);
+                        client.AllowedCorsOrigins.Add(_crsClientUri);
+                    }
 
                     var isClientExists = configDbContext.Clients.Any(x => x.ClientId == client.ClientId);
                     if (!isClientExists)
@@ -257,25 +270,22 @@ namespace Dwh.IS4Host
 
                 configDbContext.SaveChanges();
 
-                if (!EnumerableExtensions.Any(configDbContext.IdentityResources))
+                foreach (var res in Config.IdentityResources)
                 {
-                    foreach (var res in Config.IdentityResources)
-                    {
+                    var exits = configDbContext.IdentityResources.FirstOrDefault(x => x.Name.ToLower() == res.Name.ToLower());
+                    if(null==exits)
                         configDbContext.IdentityResources.Add(res.ToEntity());
-                    }
-
-                    configDbContext.SaveChanges();
                 }
-
-                if (!EnumerableExtensions.Any(configDbContext.ApiScopes))
+                
+                
+                foreach (var api in Config.ApiScopes)
                 {
-                    foreach (var api in Config.ApiScopes)
-                    {
+                    var exits = configDbContext.ApiScopes.FirstOrDefault(x => x.Name.ToLower() == api.Name.ToLower());
+                    if(null==exits)
                         configDbContext.ApiScopes.Add(api.ToEntity());
-                    }
-
-                    configDbContext.SaveChanges();
                 }
+                
+                configDbContext.SaveChanges();
             }
         }
     }

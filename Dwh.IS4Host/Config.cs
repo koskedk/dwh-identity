@@ -16,12 +16,14 @@ namespace Dwh.IS4Host
             {
                 new IdentityResources.OpenId(),
                 new IdentityResources.Profile(),
+                new IdentityResources.Email(),
             };
 
         public static IEnumerable<ApiScope> ApiScopes =>
             new ApiScope[]
             {
                 new ApiScope("apiApp", "DWH Portal"),
+                new ApiScope("crsserviceapi", "DWAPI crs"),
             };
 
         public static IEnumerable<Client> Clients =>
@@ -103,7 +105,46 @@ namespace Dwh.IS4Host
                         IdentityServerConstants.StandardScopes.Email,
                     },
                     ClientSecrets = { new Secret("a78fd782-bd4b-45ac-b13d-03e99d89b186".Sha512()) }
-                }
+                },
+                new Client
+                {
+                    ClientId = "dwapi.crs.spa",
+                    ClientName = "DWAPI CRS Frontend",
+                    ClientUri = String.Empty,
+                    RequireClientSecret = false,
+                    RequireConsent = false,
+                    AllowedGrantTypes = GrantTypes.Implicit,
+                    RedirectUris = new List<string>(),
+                    PostLogoutRedirectUris = new List<string>(),
+                    AllowedCorsOrigins = new List<string>(),
+                    AllowAccessTokensViaBrowser = true,
+                    AlwaysIncludeUserClaimsInIdToken = true,
+                    AlwaysSendClientClaims = true,
+                    AccessTokenLifetime = 3600,
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                        "crsserviceapi"
+                    },
+                },
+                new Client()
+                {
+                    ClientId = "dwapi.crs.api",
+                    ClientName = "DWAPI CRS API",
+                    AllowedGrantTypes = GrantTypes.Hybrid,
+                    RedirectUris = new List<string>(),
+                    RequirePkce = false,
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                        "crsserviceapi"
+                    },
+                    ClientSecrets = { new Secret("a80fd782-bd4b-45ac-b13d-03e99d89b186".Sha512()) }
+                },
             };
     }
 }
