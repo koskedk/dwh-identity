@@ -9,7 +9,9 @@ namespace Dwh.IS4Host.Services
         public ProfileService() { }
         public Task GetProfileDataAsync(ProfileDataRequestContext context) {
             var roleClaims = context.Subject.FindAll(JwtClaimTypes.Role);
+            var nameClaims = context.Subject.FindAll(JwtClaimTypes.Name);
             context.IssuedClaims.AddRange(roleClaims);
+            context.IssuedClaims.AddRange(nameClaims);
             return Task.CompletedTask;
         }
 
