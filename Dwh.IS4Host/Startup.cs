@@ -268,6 +268,13 @@ namespace Dwh.IS4Host
                         client.PostLogoutRedirectUris.Add(_crsPostLogoutRedirectUris);
                         client.AllowedCorsOrigins.Add(_crsClientUri);
                     }
+                    else if (client.ClientId == "dwapi.crs.spa.test")
+                    {
+                        client.ClientUri = _crsClientUri;
+                        client.RedirectUris.Add(_crsRedirectUris);
+                        client.PostLogoutRedirectUris.Add(_crsPostLogoutRedirectUris);
+                        client.AllowedCorsOrigins.Add(_crsClientUri);
+                    }
 
                     var isClientExists = configDbContext.Clients.Any(x => x.ClientId == client.ClientId);
                     if (!isClientExists)
