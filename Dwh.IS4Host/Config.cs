@@ -92,6 +92,29 @@ namespace Dwh.IS4Host
                         "apiApp"
                     },
                 },
+                new Client
+                {
+                    ClientId = "nascop.spa.failover",
+                    ClientName = "NASCOP DWH Portal Frontend",
+                    ClientUri = String.Empty,
+                    RequireClientSecret = false,
+                    RequireConsent = false,
+                    AllowedGrantTypes = GrantTypes.Implicit,
+                    RedirectUris = new List<string>(),
+                    PostLogoutRedirectUris = new List<string>(),
+                    AllowedCorsOrigins = new List<string>(),
+                    AllowAccessTokensViaBrowser = true,
+                    AlwaysIncludeUserClaimsInIdToken = true,
+                    AlwaysSendClientClaims = true,
+                    AccessTokenLifetime = 3600,
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Email,
+                        "apiApp"
+                    },
+                },
                 new Client()
                 {
                     ClientId = "nascop.adhoc-client",

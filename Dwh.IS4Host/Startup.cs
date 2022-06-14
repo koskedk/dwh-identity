@@ -257,7 +257,18 @@ namespace Dwh.IS4Host
                         client.PostLogoutRedirectUris.Add(_ndwhPostLogoutRedirectUris);
                         client.AllowedCorsOrigins.Add(_ndwhClientUri);
                     }
+                    else if (client.ClientId == "nascop.spa.failover")
+                    {
+                        client.ClientUri = _ndwhClientUri;
+                        client.RedirectUris.Add(_ndwhRedirectUris);
+                        client.PostLogoutRedirectUris.Add(_ndwhPostLogoutRedirectUris);
+                        client.AllowedCorsOrigins.Add(_ndwhClientUri);
+                    }
                     else if (client.ClientId == "nascop.adhoc-client")
+                    {
+                        client.RedirectUris.Add(_ndwhAdhocRedirectUris);
+                    }
+                    else if (client.ClientId == "nascop.adhoc-client.failover")
                     {
                         client.RedirectUris.Add(_ndwhAdhocRedirectUris);
                     }
